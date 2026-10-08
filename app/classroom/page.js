@@ -1,3 +1,4 @@
+
 'use client';
 import { useState } from 'react';
 import Link from 'next/link';
@@ -17,7 +18,7 @@ export default function ChatPage() {
     setInput('');
 
     setTimeout(() => {
-      const botMsg = { id: Date.now() + 1, sender: 'bot', text: "That's dynamic! Tell me more about that." };
+      const botMsg = { id: Date.now() + 1, sender: 'bot', text: "That's great! Tell me more." };
       setMessages((prev) => [...prev, botMsg]);
     }, 1000);
   };
