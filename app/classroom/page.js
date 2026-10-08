@@ -1,4 +1,3 @@
-
 'use client';
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
@@ -7,7 +6,6 @@ export default function ClassroomPage() {
   const [isMicOn, setIsMicOn] = useState(true);
   const [isVideoOn, setIsVideoOn] = useState(true);
   const [raisedHand, setRaisedHand] = useState(false);
-  const [hasStream, setHasStream] = useState(false);
   const userVideoRef = useRef(null);
   const streamRef = useRef(null);
 
@@ -26,7 +24,6 @@ export default function ClassroomPage() {
             if (userVideoRef.current) {
               userVideoRef.current.srcObject = stream;
             }
-            setHasStream(true);
           }
         }
       } catch (err) {
@@ -99,7 +96,7 @@ export default function ClassroomPage() {
                   height: '100%',
                   objectFit: 'cover',
                   display: isVideoOn ? 'block' : 'none',
-                  transform: 'scaleX(-1)', // Mirror effect
+                  transform: 'scaleX(-1)',
                 }}
               />
               {!isVideoOn && (
