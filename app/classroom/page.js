@@ -1,3 +1,4 @@
+
 'use client';
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
@@ -29,7 +30,7 @@ export default function ClassroomPage() {
           }
         }
       } catch (err) {
-        console.error('Error accessing camera/mic:', err);
+        console.error('Error accessing media devices:', err);
       }
     }
 
@@ -43,122 +44,123 @@ export default function ClassroomPage() {
     };
   }, []);
 
-  const toggleMic = () => {
-    if (streamRef.current) {
-      const audioTrack = streamRef.current.getAudioTracks()[0];
-      if (audioTrack) {
-        audioTrack.enabled = !isMicOn;
-        setIsMicOn(!isMicOn);
-      }
-    }
-  };
-
-  const toggleVideo = () => {
+  useEffect(() => {
     if (streamRef.current) {
       const videoTrack = streamRef.current.getVideoTracks()[0];
-      if (videoTrack) {
-        videoTrack.enabled = !isVideoOn;
-        setIsVideoOn(!isVideoOn);
-      }
+      if (videoTrack) videoTrack.enabled = isVideoOn;
     }
-  };
+  }, [isVideoOn]);
+
+  useEffect(() => {
+    if (streamRef.current) {
+      const audioTrack = streamRef.current.getAudioTracks()[0];
+      if (audioTrack) audioTrack.enabled = isMicOn;
+    }
+  }, [isMicOn]);
 
   return (
-    <div style={{ fontFamily: 'system-ui, sans-serif', backgroundColor: '#0f172a', color: '#ffffff', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-      <header style={{ backgroundColor: '#1e293b', padding: '15px 30px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-          <Link href="/" style={{ textDecoration: 'none', color: '#38bdf8', fontWeight: 'bold' }}>
-            ← Back to Home
-          </Link>
-          <h2 style={{ margin: 0, fontSize: '1.2rem' }}>🎓 Live Class: Everyday Conversation Practice</h2>
+    <div style={{ backgroundColor: '#0f172a', color: '#fff', minHeight: '100vh', padding: '20px', fontFamily: 'sans-serif' }}>
+      {/* Header */}
+      <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '1px solid #334155', paddingBottom: '15px' }}>
+        <div>
+          <Link href="/" style={{ color: '#38bdf8', textDecoration: 'none', fontWeight: 'bold' }}>&larr; Back to Home</Link>
+          <h1 style={{ margin: '10px 0 0 0', fontSize: '24px' }}>Everyday Conversation Practice</h1>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <span style={{ backgroundColor: '#ef4444', color: '#fff', padding: '4px 10px', borderRadius: '20px', fontSize: '0.8rem', fontWeight: 'bold' }}>LIVE</span>
-          <span style={{ color: '#94a3b8', fontSize: '0.9rem' }}>45:00</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+          <span style={{ backgroundColor: '#ef4444', padding: '4px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: 'bold' }}>LIVE</span>
+          <span style={{ color: '#94a3b8' }}>45:00</span>
         </div>
       </header>
 
-      <main style={{ flex: 1, padding: '20px', display: 'grid', gridTemplateColumns: '3fr 1fr', gap: '20px' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-          <div style={{ backgroundColor: '#1e293b', borderRadius: '12px', height: '360px', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', position: 'relative', border: '2px solid #3b82f6' }}>
-            <div style={{ fontSize: '4rem', marginBottom: '10px' }}>👨‍🏫</div>
-            <h3 style={{ margin: 0, color: '#f8fafc' }}>Instructor: Mr. Sarah (Native Speaker)</h3>
-            <span style={{ position: 'absolute', bottom: '15px', left: '15px', backgroundColor: 'rgba(0,0,0,0.6)', padding: '4px 10px', borderRadius: '6px', fontSize: '0.85rem' }}>
-              🎙️ Speaking...
-            </span>
+      {/* Main Grid */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: '20px' }}>
+        {/* Left Side: Video Area */}
+        <div>
+          {/* Main Stage (Instructor) */}
+          <div style={{ backgroundColor: '#1e293b', borderRadius: '12px', height: '380px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', position: 'relative', border: '1px solid #334155', marginBottom: '20px' }}>
+            <div style={{ width: '80px', height: '80px', borderRadius: '50%', backgroundColor: '#3b82f6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '36px', marginBottom: '15px' }}>
+              👨‍🏫
+            </div>
+            <h3 style={{ margin: 0 }}>Instructor: Mr. Sarah (Native Speaker)</h3>
+            <span style={{ position: 'absolute', bottom: '15px', left: '15px', backgroundColor: 'rgba(0,0,0,0.6)', padding: '4px 8px', borderRadius: '4px', fontSize: '12px' }}>🔊 Speaking...</span>
           </div>
 
+          {/* Students Grid */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '15px' }}>
-            <div style={{ backgroundColor: '#1e293b', borderRadius: '8px', height: '140px', overflow: 'hidden', position: 'relative', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+            {/* YOU (Student) with Video Element */}
+            <div style={{ backgroundColor: '#1e293b', borderRadius: '8px', height: '140px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden', border: '2px solid #3b82f6' }}>
               <video
                 ref={userVideoRef}
                 autoPlay
                 playsInline
                 muted
-                style={{ width: '100%', height: '100%', objectFit: 'cover', transform: 'scaleX(-1)', display: isVideoOn && hasStream ? 'block' : 'none' }}
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'cover',
+                  display: isVideoOn ? 'block' : 'none',
+                  transform: 'scaleX(-1)', // Mirror effect
+                }}
               />
-              {(!isVideoOn || !hasStream) && <div style={{ fontSize: '2.5rem' }}>🧑‍🎓</div>}
-              <span style={{ position: 'absolute', bottom: '8px', left: '8px', backgroundColor: 'rgba(0,0,0,0.6)', padding: '2px 8px', borderRadius: '4px', fontSize: '0.75rem' }}>
-                You (Student) {isMicOn ? '🎙️' : '🔇'}
+              {!isVideoOn && (
+                <div style={{ fontSize: '32px', marginBottom: '8px' }}>👨‍🎓</div>
+              )}
+              <span style={{ position: 'absolute', bottom: '8px', left: '8px', backgroundColor: 'rgba(0,0,0,0.7)', padding: '2px 6px', borderRadius: '4px', fontSize: '11px', color: '#fff', zIndex: 10 }}>
+                You (Student) {!isVideoOn && '(Camera Off)'}
               </span>
             </div>
 
-            <div style={{ backgroundColor: '#1e293b', borderRadius: '8px', height: '140px', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', position: 'relative' }}>
-              <div style={{ fontSize: '2.5rem' }}>👩‍🎓</div>
-              <span style={{ position: 'absolute', bottom: '8px', left: '8px', backgroundColor: 'rgba(0,0,0,0.6)', padding: '2px 8px', borderRadius: '4px', fontSize: '0.75rem' }}>Li Wei (China)</span>
+            {/* Other Students */}
+            <div style={{ backgroundColor: '#1e293b', borderRadius: '8px', height: '140px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', position: 'relative', border: '1px solid #334155' }}>
+              <div style={{ fontSize: '32px', marginBottom: '8px' }}>🧔</div>
+              <span style={{ position: 'absolute', bottom: '8px', left: '8px', backgroundColor: 'rgba(0,0,0,0.6)', padding: '2px 6px', borderRadius: '4px', fontSize: '11px' }}>Li Wei (China)</span>
             </div>
 
-            <div style={{ backgroundColor: '#1e293b', borderRadius: '8px', height: '140px', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', position: 'relative' }}>
-              <div style={{ fontSize: '2.5rem' }}>👨‍💻</div>
-              <span style={{ position: 'absolute', bottom: '8px', left: '8px', backgroundColor: 'rgba(0,0,0,0.6)', padding: '2px 8px', borderRadius: '4px', fontSize: '0.75rem' }}>Ali (Iran)</span>
+            <div style={{ backgroundColor: '#1e293b', borderRadius: '8px', height: '140px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', position: 'relative', border: '1px solid #334155' }}>
+              <div style={{ fontSize: '32px', marginBottom: '8px' }}>👩</div>
+              <span style={{ position: 'absolute', bottom: '8px', left: '8px', backgroundColor: 'rgba(0,0,0,0.6)', padding: '2px 6px', borderRadius: '4px', fontSize: '11px' }}>Ali (Iran)</span>
             </div>
+          </div>
+
+          {/* Controls Bar */}
+          <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'center', gap: '15px' }}>
+            <button
+              onClick={() => setIsMicOn(!isMicOn)}
+              style={{ padding: '10px 20px', borderRadius: '8px', border: 'none', backgroundColor: isMicOn ? '#334155' : '#ef4444', color: '#fff', cursor: 'pointer', fontWeight: 'bold' }}
+            >
+              {isMicOn ? '🎙️ Mic On' : '🎙️ Mic Off'}
+            </button>
+            <button
+              onClick={() => setIsVideoOn(!isVideoOn)}
+              style={{ padding: '10px 20px', borderRadius: '8px', border: 'none', backgroundColor: isVideoOn ? '#334155' : '#ef4444', color: '#fff', cursor: 'pointer', fontWeight: 'bold' }}
+            >
+              {isVideoOn ? '📹 Camera On' : '📹 Camera Off'}
+            </button>
+            <button
+              onClick={() => setRaisedHand(!raisedHand)}
+              style={{ padding: '10px 20px', borderRadius: '8px', border: 'none', backgroundColor: raisedHand ? '#eab308' : '#334155', color: '#fff', cursor: 'pointer', fontWeight: 'bold' }}
+            >
+              ✋ {raisedHand ? 'Hand Raised' : 'Raise Hand'}
+            </button>
+            <Link href="/" style={{ padding: '10px 20px', borderRadius: '8px', backgroundColor: '#ef4444', color: '#fff', textDecoration: 'none', fontWeight: 'bold', display: 'inline-block' }}>
+              Leave Class
+            </Link>
           </div>
         </div>
 
-        <div style={{ backgroundColor: '#1e293b', borderRadius: '12px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
-          <div>
-            <h3 style={{ color: '#f59e0b', marginTop: 0 }}>Key Vocabulary Today:</h3>
-            <ul style={{ paddingLeft: '20px', lineHeight: '1.8' }}>
+        {/* Right Side: Sidebar */}
+        <div style={{ backgroundColor: '#1e293b', borderRadius: '12px', padding: '20px', border: '1px solid #334155' }}>
+          <h3 style={{ marginTop: 0, borderBottom: '1px solid #334155', paddingBottom: '10px' }}>📋 Lesson Notes &amp; Vocabulary</h3>
+          <div style={{ marginTop: '15px' }}>
+            <h4 style={{ color: '#38bdf8', marginBottom: '8px' }}>Key Vocabulary Today:</h4>
+            <ul style={{ paddingLeft: '20px', color: '#cbd5e1', lineHeight: '1.6' }}>
               <li><strong>Fluency:</strong> Expressing yourself smoothly.</li>
               <li><strong>Collaboration:</strong> Working together.</li>
               <li><strong>Interactive:</strong> Engaging in two-way communication.</li>
             </ul>
           </div>
-          <div style={{ borderTop: '1px solid #334155', paddingTop: '15px' }}>
-            <h3 style={{ color: '#10b981', marginTop: 0 }}>Discussion Question:</h3>
-            <p style={{ fontStyle: 'italic', color: '#cbd5e1' }}>&quot;What is the best way to practice speaking every day?&quot;</p>
-          </div>
         </div>
-      </main>
-
-      <footer style={{ backgroundColor: '#1e293b', padding: '15px', display: 'flex', justifyContent: 'center', gap: '15px', borderTop: '1px solid #334155' }}>
-        <button
-          onClick={toggleMic}
-          style={{ backgroundColor: isMicOn ? '#3b82f6' : '#ef4444', color: '#fff', border: 'none', padding: '10px 20px', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}
-        >
-          {isMicOn ? '🎙️ Mic On' : '🔇 Mic Off'}
-        </button>
-
-        <button
-          onClick={toggleVideo}
-          style={{ backgroundColor: isVideoOn ? '#3b82f6' : '#ef4444', color: '#fff', border: 'none', padding: '10px 20px', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}
-        >
-          {isVideoOn ? '📹 Camera On' : '📷 Camera Off'}
-        </button>
-
-        <button
-          onClick={() => setRaisedHand(!raisedHand)}
-          style={{ backgroundColor: raisedHand ? '#f59e0b' : '#334155', color: '#fff', border: 'none', padding: '10px 20px', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}
-        >
-          {raisedHand ? '✋ Hand Raised' : '✋ Raise Hand'}
-        </button>
-
-        <Link href="/">
-          <button style={{ backgroundColor: '#dc2626', color: '#fff', border: 'none', padding: '10px 20px', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>
-            🚪 Leave Class
-          </button>
-        </Link>
-      </footer>
+      </div>
     </div>
   );
 }
