@@ -8,7 +8,7 @@ export default function ChatPage() {
   const [inCall, setInCall] = useState(false);
 
   // لینک روم ویدیو کنفرانس عمومی و دائمی
-  const roomUrl = 'https://meet.jit.si/AskEnglishAppChatRoom';
+    const roomUrl = 'https://jitsi.member.fsf.org/AskEnglishAppChatRoom';
 
   return (
     <div style={{ padding: '20px', maxWidth: '1000px', margin: '0 auto', color: '#f3f4f6', fontFamily: 'system-ui, sans-serif' }}>
