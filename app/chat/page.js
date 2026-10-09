@@ -8,7 +8,7 @@ export default function ChatPage() {
   const [inCall, setInCall] = useState(false);
 
   // لینک روم ویدیو کنفرانس عمومی و دائمی
-  const roomUrl = 'https://globaltalk.daily.co/GlobalTalkRoom';
+  const roomUrl = 'https://askenglishapp.daily.co/chatroom';
 
   return (
     <div style={{ padding: '20px', maxWidth: '1000px', margin: '0 auto', color: '#f3f4f6', fontFamily: 'system-ui, sans-serif' }}>
