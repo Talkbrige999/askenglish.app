@@ -1,6 +1,7 @@
+
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 
 export default function ChatPage() {
@@ -21,6 +22,13 @@ export default function ChatPage() {
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
 
+  // اتصال استریم دوربین به المان ویدیو پس از رندر
+  useEffect(() => {
+    if (isVideoOn && streamRef.current && videoRef.current) {
+      videoRef.current.srcObject = streamRef.current;
+    }
+  }, [isVideoOn]);
+
   // مدیریت دوربین
   const toggleVideo = async () => {
     if (isVideoOn) {
@@ -33,9 +41,6 @@ export default function ChatPage() {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
         streamRef.current = stream;
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-        }
         setIsVideoOn(true);
       } catch (err) {
         alert('لطفاً دسترسی به دوربین و میکروفون را در مرورگر تأیید کنید.');
