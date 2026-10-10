@@ -13,20 +13,22 @@ function ClassroomContent() {
 
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
-  const [username, setUsername] = useState('');
+  const [username, setUsername] = useState('Guest');
   const [showVideo, setShowVideo] = useState(true);
   const messagesEndRef = useRef(null);
 
   const roomName = `askenglish-${level}-room-2026`;
 
   useEffect(() => {
-    const savedName = localStorage.getItem('askenglish_username');
-    if (savedName) {
-      setUsername(savedName);
-    } else {
-      const randomName = 'User_' + Math.floor(1000 + Math.random() * 9000);
-      setUsername(randomName);
-      localStorage.setItem('askenglish_username', randomName);
+    if (typeof window !== 'undefined') {
+      const savedName = localStorage.getItem('askenglish_username');
+      if (savedName) {
+        setUsername(savedName);
+      } else {
+        const randomName = 'User_' + Math.floor(1000 + Math.random() * 9000);
+        setUsername(randomName);
+        localStorage.setItem('askenglish_username', randomName);
+      }
     }
   }, []);
 
@@ -45,7 +47,7 @@ function ClassroomContent() {
       const msgs = snapshot.docs.map(doc => {
         const data = doc.data();
         let timeString = '';
-        if (data.createdAt?.toDate) {
+        if (data.createdAt && typeof data.createdAt.toDate === 'function') {
           timeString = data.createdAt.toDate().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         }
         return {
@@ -56,6 +58,8 @@ function ClassroomContent() {
       });
       setMessages(msgs);
       scrollToBottom();
+    }, (error) => {
+      console.error("Error fetching messages:", error);
     });
 
     return () => unsubscribe();
@@ -69,14 +73,17 @@ function ClassroomContent() {
     e.preventDefault();
     if (!input.trim()) return;
 
-    await addDoc(collection(db, 'messages'), {
-      text: input,
-      createdAt: serverTimestamp(),
-      user: username,
-      room: level
-    });
-
-    setInput('');
+    try {
+      await addDoc(collection(db, 'messages'), {
+        text: input,
+        createdAt: serverTimestamp(),
+        user: username,
+        room: level
+      });
+      setInput('');
+    } catch (error) {
+      console.error("Error sending message:", error);
+    }
   };
 
   const roomTitle = 
@@ -86,7 +93,7 @@ function ClassroomContent() {
       ? 'Intermediate Room / اتاق متوسط / 中级聊天室' 
       : 'Advanced Room / اتاق پیشرفته / 高级聊天室';
 
-  const jitsiUrl = `https://meet.jit.si/${roomName}#userInfo.displayName=${encodeURIComponent(username)}`;
+  const jitsiUrl = `https://meet.jit.si/${roomName}`;
 
   return (
     <div style={{ maxWidth: '1100px', margin: '20px auto', padding: '20px', fontFamily: 'sans-serif' }}>
@@ -98,6 +105,7 @@ function ClassroomContent() {
         </div>
         <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
           <button 
+            type="button"
             onClick={() => setShowVideo(!showVideo)} 
             style={{ 
               padding: '8px 14px', 
@@ -119,7 +127,9 @@ function ClassroomContent() {
               value={username} 
               onChange={(e) => {
                 setUsername(e.target.value);
-                localStorage.setItem('askenglish_username', e.target.value);
+                if (typeof window !== 'undefined') {
+                  localStorage.setItem('askenglish_username', e.target.value);
+                }
               }}
               style={{ padding: '6px', borderRadius: '4px', border: '1px solid #ccc', fontSize: '13px', width: '110px' }}
             />
