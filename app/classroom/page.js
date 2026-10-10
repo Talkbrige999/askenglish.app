@@ -1,10 +1,11 @@
+
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
-export default function ClassroomPage() {
+function ClassroomContent() {
   const searchParams = useSearchParams();
   const level = searchParams.get('level') || 'beginner';
 
@@ -18,7 +19,6 @@ export default function ClassroomPage() {
 
   const [isMicOn, setIsMicOn] = useState(true);
   const [isVideoOn, setIsVideoOn] = useState(true);
-  const [raisedHand, setRaisedHand] = useState(false);
   const userVideoRef = useRef(null);
   const streamRef = useRef(null);
 
@@ -118,5 +118,13 @@ export default function ClassroomPage() {
         </div>
       </div>
     </main>
+  );
+}
+
+export default function ClassroomPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-slate-900 text-white flex items-center justify-center">در حال بارگذاری اتاق...</div>}>
+      <ClassroomContent />
+    </Suspense>
   );
 }
