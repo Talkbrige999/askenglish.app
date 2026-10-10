@@ -1,8 +1,21 @@
 'use client';
+
 import { useState, useEffect, useRef } from 'react';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
 export default function ClassroomPage() {
+  const searchParams = useSearchParams();
+  const level = searchParams.get('level') || 'beginner';
+
+  const levelInfo = {
+    beginner: { title: 'Beginner Room', color: 'text-green-400', desc: 'اتاق مکالمه مقدماتی و تمرین پایه' },
+    intermediate: { title: 'Intermediate Room', color: 'text-blue-400', desc: 'اتاق مکالمه متوسط و بحث روزمره' },
+    advanced: { title: 'Advanced Room', color: 'text-purple-400', desc: 'اتاق مکالمه پیشرفته و بحث آزاد' },
+  };
+
+  const currentLevel = levelInfo[level] || levelInfo.beginner;
+
   const [isMicOn, setIsMicOn] = useState(true);
   const [isVideoOn, setIsVideoOn] = useState(true);
   const [raisedHand, setRaisedHand] = useState(false);
@@ -27,7 +40,7 @@ export default function ClassroomPage() {
           }
         }
       } catch (err) {
-        console.log("Media error:", err);
+        console.error("Error accessing media devices.", err);
       }
     }
 
@@ -36,75 +49,74 @@ export default function ClassroomPage() {
     return () => {
       isMounted = false;
       if (streamRef.current) {
-        streamRef.current.getTracks().forEach((track) => track.stop());
+        streamRef.current.getTracks().forEach(track => track.stop());
       }
     };
   }, []);
 
-  useEffect(() => {
+  const toggleMic = () => {
     if (streamRef.current) {
-      const videoTrack = streamRef.current.getVideoTracks()[0];
-      if (videoTrack) videoTrack.enabled = isVideoOn;
+      streamRef.current.getAudioTracks().forEach(track => {
+        track.enabled = !isMicOn;
+      });
     }
-  }, [isVideoOn]);
+    setIsMicOn(!isMicOn);
+  };
 
-  useEffect(() => {
+  const toggleVideo = () => {
     if (streamRef.current) {
-      const audioTrack = streamRef.current.getAudioTracks()[0];
-      if (audioTrack) audioTrack.enabled = isMicOn;
+      streamRef.current.getVideoTracks().forEach(track => {
+        track.enabled = !isVideoOn;
+      });
     }
-  }, [isMicOn]);
+    setIsVideoOn(!isVideoOn);
+  };
 
   return (
-    <div style={{ backgroundColor: '#0f172a', color: '#fff', minHeight: '100vh', padding: '20px', fontFamily: 'sans-serif' }}>
-      <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '1px solid #334155', paddingBottom: '15px' }}>
-        <div>
-          <Link href="/" style={{ color: '#38bdf8', textDecoration: 'none', fontWeight: 'bold' }}>&larr; Back to Home</Link>
-          <h1 style={{ margin: '10px 0 0 0', fontSize: '24px' }}>Everyday Conversation Practice</h1>
-        </div>
+    <main className="min-h-screen bg-slate-900 text-white flex flex-col items-center justify-between p-6">
+      <header className="w-full max-w-4xl flex justify-between items-center py-4 border-b border-slate-800">
+        <Link href="/" className="text-slate-400 hover:text-white transition-colors">
+          ← بازگشت به انتخاب اتاق‌ها
+        </Link>
+        <span className={`font-semibold ${currentLevel.color}`}>{currentLevel.title}</span>
       </header>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: '20px' }}>
-        <div>
-          <div style={{ backgroundColor: '#1e293b', borderRadius: '12px', height: '350px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', position: 'relative', border: '1px solid #334155', marginBottom: '20px' }}>
-            <div style={{ fontSize: '40px', marginBottom: '10px' }}>👨‍🏫</div>
-            <h3>Instructor: Live Class</h3>
+      <div className="w-full max-w-4xl flex-1 flex flex-col items-center justify-center text-center space-y-6 my-8">
+        <div className="bg-slate-800 border border-slate-700 rounded-3xl p-8 w-full shadow-2xl space-y-4">
+          <h1 className="text-3xl font-bold">{currentLevel.title}</h1>
+          <p className="text-slate-400">{currentLevel.desc}</p>
+          
+          <div className="bg-slate-900 rounded-2xl h-80 flex items-center justify-center border border-slate-800 overflow-hidden relative">
+            <video 
+              ref={userVideoRef} 
+              autoPlay 
+              playsInline 
+              muted 
+              className="w-full h-full object-cover"
+            />
+            {!isVideoOn && (
+              <div className="absolute inset-0 bg-slate-950 flex items-center justify-center text-slate-500">
+                دوربین خاموش است
+              </div>
+            )}
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '15px' }}>
-            <div style={{ backgroundColor: '#1e293b', borderRadius: '8px', height: '140px', position: 'relative', overflow: 'hidden', border: '2px solid #3b82f6' }}>
-              <video
-                ref={userVideoRef}
-                autoPlay
-                playsInline
-                muted
-                style={{ width: '100%', height: '100%', objectFit: 'cover', display: isVideoOn ? 'block' : 'none', transform: 'scaleX(-1)' }}
-              />
-              {!isVideoOn && <div style={{ textAlign: 'center', paddingTop: '40px', fontSize: '30px' }}>👨‍🎓</div>}
-              <span style={{ position: 'absolute', bottom: '8px', left: '8px', backgroundColor: 'rgba(0,0,0,0.7)', padding: '2px 6px', borderRadius: '4px', fontSize: '11px' }}>
-                You
-              </span>
-            </div>
-          </div>
-
-          <div style={{ marginTop: '20px', display: 'flex', gap: '10px' }}>
-            <button onClick={() => setIsMicOn(!isMicOn)} style={{ padding: '10px 15px', borderRadius: '6px', cursor: 'pointer', backgroundColor: isMicOn ? '#334155' : '#ef4444', color: '#fff', border: 'none' }}>
-              {isMicOn ? '🎙️ Mic On' : '🎙️ Mic Off'}
+          <div className="flex justify-center gap-4 mt-4">
+            <button 
+              onClick={toggleMic}
+              className={`px-4 py-2 rounded-xl font-medium transition-colors ${isMicOn ? 'bg-slate-700 hover:bg-slate-600 text-white' : 'bg-red-600 hover:bg-red-700 text-white'}`}
+            >
+              {isMicOn ? '🎤 قطع میکروفون' : '🎤 وصل میکروفون'}
             </button>
-            <button onClick={() => setIsVideoOn(!isVideoOn)} style={{ padding: '10px 15px', borderRadius: '6px', cursor: 'pointer', backgroundColor: isVideoOn ? '#334155' : '#ef4444', color: '#fff', border: 'none' }}>
-              {isVideoOn ? '📹 Camera On' : '📹 Camera Off'}
-            </button>
-            <button onClick={() => setRaisedHand(!raisedHand)} style={{ padding: '10px 15px', borderRadius: '6px', cursor: 'pointer', backgroundColor: raisedHand ? '#eab308' : '#334155', color: '#fff', border: 'none' }}>
-              ✋ {raisedHand ? 'Hand Raised' : 'Raise Hand'}
+            <button 
+              onClick={toggleVideo}
+              className={`px-4 py-2 rounded-xl font-medium transition-colors ${isVideoOn ? 'bg-slate-700 hover:bg-slate-600 text-white' : 'bg-red-600 hover:bg-red-700 text-white'}`}
+            >
+              {isVideoOn ? '📹 قطع دوربین' : '📹 وصل دوربین'}
             </button>
           </div>
-        </div>
-
-        <div style={{ backgroundColor: '#1e293b', borderRadius: '12px', padding: '20px', border: '1px solid #334155' }}>
-          <h3>Lesson Notes</h3>
-          <p style={{ color: '#cbd5e1' }}>Practice speaking with your peers and teacher.</p>
         </div>
       </div>
-    </div>
+    </main>
   );
 }
