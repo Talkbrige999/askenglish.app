@@ -1,104 +1,62 @@
 'use client';
+
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { auth, googleProvider } from '../firebase';
+import { signInWithPopup } from 'firebase/auth';
 import Link from 'next/link';
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [nativeLang, setNativeLang] = useState('Persian');
-  const [targetLang, setTargetLang] = useState('English');
+  const router = useRouter();
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    alert(`خوش آمدید! زبان مادری: ${nativeLang} | زبان هدف: ${targetLang}`);
-    window.location.href = '/chat';
+  const handleGoogleLogin = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      await signInWithPopup(auth, googleProvider);
+      router.push('/'); // پس از ورود موفق، کاربر به صفحه اصلی هدایت می‌شود
+    } catch (err) {
+      console.error(err);
+      setError('خطا در ورود با گوگل. لطفاً دوباره تلاش کنید.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <div style={{ fontFamily: 'system-ui, sans-serif', backgroundColor: '#0f172a', color: '#ffffff', minHeight: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '20px' }}>
-      <div style={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '16px', padding: '40px', width: '100%', maxWidth: '420px', boxShadow: '0 10px 25px rgba(0,0,0,0.5)' }}>
-        
-        {/* Logo & Header */}
-        <div style={{ textAlign: 'center', marginBottom: '30px' }}>
-          <h1 style={{ fontSize: '1.8rem', color: '#38bdf8', margin: '0 0 8px 0' }}>🌐 GlobalTalk AI</h1>
-          <p style={{ color: '#94a3b8', fontSize: '0.95rem', margin: 0 }}>وارد حساب کاربری خود شوید</p>
+    <main className="min-h-screen bg-slate-900 text-white flex flex-col items-center justify-center p-6">
+      <div className="max-w-md w-full bg-slate-800 border border-slate-700 rounded-3xl p-8 shadow-2xl text-center space-y-6">
+        <h1 className="text-3xl font-bold text-blue-400">ورود به AskEnglish</h1>
+        <p className="text-slate-400 text-sm">برای پیوستن به اتاق‌های مکالمه، با حساب گوگل خود وارد شوید.</p>
+
+        {error && (
+          <div className="bg-red-500/10 text-red-400 text-xs p-3 rounded-xl border border-red-500/20">
+            {error}
+          </div>
+        )}
+
+        <button
+          onClick={handleGoogleLogin}
+          disabled={loading}
+          className="w-full bg-white hover:bg-slate-100 text-slate-900 font-semibold py-3 px-4 rounded-xl transition-colors flex items-center justify-center gap-3 shadow-md"
+        >
+          <svg className="w-5 h-5" viewBox="0 0 24 24">
+            <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.66-5.17 3.66-9.17z"/>
+            <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.11-6.72-4.95H1.19v3.15C3.17 21.36 7.22 24 12 24z"/>
+            <path fill="#FBBC05" d="M5.28 14.25c-.25-.72-.38-1.5-.38-2.25s.13-1.53.38-2.25V6.6H1.19C.43 8.15 0 9.89 0 12s.43 3.85 1.19 5.4l4.09-3.15z"/>
+            <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.22 0 3.17 2.64 1.19 6.6l4.09 3.15c.95-2.84 3.6-4.95 6.72-4.95z"/>
+          </svg>
+          {loading ? 'در حال اتصال...' : 'ورود با حساب گوگل'}
+        </button>
+
+        <div className="pt-4 border-t border-slate-700">
+          <Link href="/" className="text-slate-400 hover:text-white text-sm transition-colors">
+            ← بازگشت به صفحه اصلی
+          </Link>
         </div>
-
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
-          
-          {/* Email */}
-          <div>
-            <label style={{ display: 'block', fontSize: '0.85rem', color: '#cbd5e1', marginBottom: '6px' }}>ایمیل</label>
-            <input 
-              type="email" 
-              required
-              placeholder="example@gmail.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #334155', backgroundColor: '#0f172a', color: '#fff', fontSize: '0.95rem', outline: 'none', boxSizing: 'border-box' }}
-            />
-          </div>
-
-          {/* Password */}
-          <div>
-            <label style={{ display: 'block', fontSize: '0.85rem', color: '#cbd5e1', marginBottom: '6px' }}>رمز عبور</label>
-            <input 
-              type="password" 
-              required
-              placeholder="••••••••"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #334155', backgroundColor: '#0f172a', color: '#fff', fontSize: '0.95rem', outline: 'none', boxSizing: 'border-box' }}
-            />
-          </div>
-
-          {/* Native Language */}
-          <div>
-            <label style={{ display: 'block', fontSize: '0.85rem', color: '#cbd5e1', marginBottom: '6px' }}>زبان مادری شما</label>
-            <select 
-              value={nativeLang} 
-              onChange={(e) => setNativeLang(e.target.value)}
-              style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #334155', backgroundColor: '#0f172a', color: '#fff', fontSize: '0.95rem', outline: 'none', boxSizing: 'border-box' }}
-            >
-              <option value="Persian">فارسی (Persian)</option>
-              <option value="English">انگلیسی (English)</option>
-              <option value="Spanish">اسپانیایی (Spanish)</option>
-              <option value="French">فرانسوی (French)</option>
-              <option value="Arabic">عربی (Arabic)</option>
-            </select>
-          </div>
-
-          {/* Target Language */}
-          <div>
-            <label style={{ display: 'block', fontSize: '0.85rem', color: '#cbd5e1', marginBottom: '6px' }}>زبان مورد تمرین (هدف)</label>
-            <select 
-              value={targetLang} 
-              onChange={(e) => setTargetLang(e.target.value)}
-              style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #334155', backgroundColor: '#0f172a', color: '#fff', fontSize: '0.95rem', outline: 'none', boxSizing: 'border-box' }}
-            >
-              <option value="English">انگلیسی (English)</option>
-              <option value="Persian">فارسی (Persian)</option>
-              <option value="Spanish">اسپانیایی (Spanish)</option>
-              <option value="French">فرانسوی (French)</option>
-              <option value="German">آلمانی (German)</option>
-            </select>
-          </div>
-
-          {/* Submit Button */}
-          <button 
-            type="submit" 
-            style={{ marginTop: '10px', backgroundColor: '#0284c7', color: '#fff', border: 'none', padding: '14px', borderRadius: '8px', fontSize: '1rem', fontWeight: 'bold', cursor: 'pointer' }}
-          >
-            ورود به برنامه 🚀
-          </button>
-        </form>
-
-        <div style={{ marginTop: '20px', textAlign: 'center', fontSize: '0.85rem', color: '#64748b' }}>
-          <Link href="/" style={{ color: '#38bdf8', textDecoration: 'none' }}>بازگشت به صفحه اصلی</Link>
-        </div>
-
       </div>
-    </div>
+    </main>
   );
 }
-
