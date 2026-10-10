@@ -1,188 +1,140 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, useRef, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { db } from '../../firebase'; // مسیر فایل فایربیس پروژه شما
-import { 
-  collection, 
-  addDoc, 
-  query, 
-  orderBy, 
-  onSnapshot, 
-  serverTimestamp 
-} from 'firebase/firestore';
+import { db } from '../../firebase';
+import { collection, addDoc, query, orderBy, onSnapshot, serverTimestamp } from 'firebase/firestore';
 
 function ClassroomContent() {
   const searchParams = useSearchParams();
   const level = searchParams.get('level') || 'beginner';
 
   const [messages, setMessages] = useState([]);
-  const [newMessage, setNewMessage] = useState('');
-  const [userName, setUserName] = useState('Guest User');
+  const [input, setInput] = useState('');
+  const [username, setUsername] = useState('');
+  const messagesEndRef = useRef(null);
 
-  const roomDetails = {
-    beginner: {
-      title: 'Beginner Room / اتاق مقدماتی / 初级聊天室',
-      desc: 'Practice basic English with friends / تمرین مکالمه پایه / 练习基础英语日常对话',
-      color: '#22c55e',
-    },
-    intermediate: {
-      title: 'Intermediate Room / اتاق متوسط / 中级聊天室',
-      desc: 'Discuss daily topics / بحث پیرامون موضوعات روزمره / 讨论日常热门话题',
-      color: '#eab308',
-    },
-    advanced: {
-      title: 'Advanced Room / اتاق پیشرفته / 高级聊天室',
-      desc: 'Advanced discussions & expressions / بحث‌های تخصصی و اصطلاحات پیشرفته / 深入探讨专业话题',
-      color: '#ef4444',
-    },
+  // تنظیم نام کاربری در لوکال‌استوریج
+  useEffect(() => {
+    const savedName = localStorage.getItem('askenglish_username');
+    if (savedName) {
+      setUsername(savedName);
+    } else {
+      const randomName = 'User_' + Math.floor(1000 + Math.random() * 9000);
+      setUsername(randomName);
+      localStorage.setItem('askenglish_username', randomName);
+    }
+  }, []);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  const currentRoom = roomDetails[level] || roomDetails.beginner;
-
-  // دریافت پیام‌ها به صورت زنده (Real-time) از Firestore
+  // دریافت پیام‌ها به صورت زنده
   useEffect(() => {
-    const q = query(collection(db, `rooms_${level}_messages`), orderBy('createdAt', 'asc'));
-    
+    const q = query(collection(db, 'messages'), orderBy('createdAt', 'asc'));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const msgs = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
       }));
       setMessages(msgs);
+      scrollToBottom();
+    });
+    return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
+  // ارسال پیام جدید
+  const sendMessage = async (e) => {
+    e.preventDefault();
+    if (!input.trim()) return;
+
+    await addDoc(collection(db, 'messages'), {
+      text: input,
+      createdAt: serverTimestamp(),
+      user: username,
+      room: level
     });
 
-    return () => unsubscribe();
-  }, [level]);
-
-  // ارسال پیام به فایربیس
-  const handleSendMessage = async (e) => {
-    e.preventDefault();
-    if (!newMessage.trim()) return;
-
-    try {
-      await addDoc(collection(db, `rooms_${level}_messages`), {
-        text: newMessage,
-        sender: userName,
-        createdAt: serverTimestamp()
-      });
-      setNewMessage('');
-    } catch (error) {
-      console.error("Error sending message: ", error);
-    }
+    setInput('');
   };
 
   return (
-    <div style={{
-      maxWidth: '800px',
-      margin: '0 auto',
-      padding: '20px',
-      fontFamily: 'system-ui, -apple-system, sans-serif',
-      color: '#1e293b',
-      height: '100vh',
-      display: 'flex',
-      flexDirection: 'column',
-      justifyContent: 'space-between'
-    }}>
-      {/* Header */}
-      <div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid #e2e8f0', paddingBottom: '12px', marginBottom: '16px' }}>
+    <div style={{ maxWidth: '800px', margin: '20px auto', padding: '20px', fontFamily: 'sans-serif' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+        <div>
+          <h2 style={{ textTransform: 'capitalize', margin: 0 }}>
+            {level} Room / اتاق {level === 'beginner' ? 'مقدماتی' : level === 'intermediate' ? 'متوسط' : 'پیشرفته'}
+          </h2>
+        </div>
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
           <div>
-            <h1 style={{ fontSize: '1.4rem', fontWeight: '800', color: currentRoom.color, margin: 0 }}>
-              {currentRoom.title}
-            </h1>
-            <p style={{ fontSize: '0.85rem', color: '#64748b', margin: '4px 0 0 0' }}>
-              {currentRoom.desc}
-            </p>
+            <label style={{ fontSize: '11px', color: '#666', display: 'block' }}>Name / نام:</label>
+            <input 
+              type="text" 
+              value={username} 
+              onChange={(e) => {
+                setUsername(e.target.value);
+                localStorage.setItem('askenglish_username', e.target.value);
+              }}
+              style={{ padding: '5px', borderRadius: '4px', border: '1px solid #ccc', fontSize: '13px', width: '110px' }}
+            />
           </div>
-          <Link href="/" style={{
-            backgroundColor: '#ef4444',
-            color: '#fff',
-            padding: '8px 16px',
-            borderRadius: '8px',
-            textDecoration: 'none',
-            fontSize: '0.9rem',
-            fontWeight: '600'
-          }}>
-            Exit / خروج / 退出
+          <Link href="/" style={{ padding: '6px 12px', background: '#e0e0e0', color: '#333', textDecoration: 'none', borderRadius: '5px', fontSize: '13px' }}>
+            Exit / خروج
           </Link>
         </div>
-
-        {/* نام کاربری موقت */}
-        <div style={{ marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.9rem' }}>
-          <span>Your Name / نام شما / 您的名字:</span>
-          <input 
-            type="text" 
-            value={userName} 
-            onChange={(e) => setUserName(e.target.value)}
-            style={{ padding: '4px 8px', borderRadius: '6px', border: '1px solid #cbd5e1' }}
-          />
-        </div>
       </div>
-
-      {/* Box of Messages */}
-      <div style={{
-        flex: 1,
-        backgroundColor: '#f8fafc',
-        border: '1px solid #e2e8f0',
-        borderRadius: '12px',
-        padding: '16px',
-        overflowY: 'auto',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '10px',
-        marginBottom: '16px',
-        maxHeight: '50vh'
-      }}>
-        {/* پیام پیش‌فرض خوش‌آمدگویی سیستم */}
-        <div style={{ backgroundColor: '#e2e8f0', padding: '10px 14px', borderRadius: '10px', fontSize: '0.9rem' }}>
-          <strong style={{ color: '#334155' }}>System / سیستم / 系统:</strong>
-          <p style={{ margin: '4px 0 0 0' }}>Welcome to the live room! Start typing your messages below. / به اتاق زنده خوش آمدید! پیام خود را بنویسید. / 欢迎来到直播间！请在下方输入您的消息。</p>
+      
+      <div style={{ border: '1px solid #e0e0e0', height: '450px', overflowY: 'auto', padding: '15px', borderRadius: '10px', background: '#f9f9f9' }}>
+        <div style={{ background: '#e6f2ff', padding: '10px', borderRadius: '8px', marginBottom: '15px', fontSize: '13px', color: '#004080' }}>
+          System / سیستم: Welcome to the live room! Start typing your messages below. / به اتاق زنده خوش آمدید!
         </div>
-
-        {messages.map((msg) => (
-          <div key={msg.id} style={{
-            backgroundColor: '#ffffff',
-            border: '1px solid #e2e8f0',
-            padding: '10px 14px',
-            borderRadius: '10px',
-            boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: '#64748b', marginBottom: '4px' }}>
-              <strong>{msg.sender}</strong>
+        {messages.map((msg) => {
+          const isMe = msg.user === username;
+          return (
+            <div 
+              key={msg.id} 
+              style={{ 
+                display: 'flex', 
+                flexDirection: 'column', 
+                alignItems: isMe ? 'flex-end' : 'flex-start',
+                marginBottom: '12px' 
+              }}
+            >
+              <span style={{ fontSize: '11px', color: '#888', marginBottom: '2px' }}>{msg.user}</span>
+              <div style={{ 
+                background: isMe ? '#0070f3' : '#ffffff', 
+                color: isMe ? '#ffffff' : '#333333', 
+                padding: '10px 14px', 
+                borderRadius: '12px',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+                maxWidth: '70%',
+                wordBreak: 'break-word'
+              }}>
+                {msg.text}
+              </div>
             </div>
-            <p style={{ margin: 0, fontSize: '0.95rem', wordBreak: 'break-word' }}>{msg.text}</p>
-          </div>
-        ))}
+          );
+        })}
+        <div ref={messagesEndRef} />
       </div>
 
-      {/* Input Form */}
-      <form onSubmit={handleSendMessage} style={{ display: 'flex', gap: '10px' }}>
+      <form onSubmit={sendMessage} style={{ display: 'flex', gap: '10px', marginTop: '15px' }}>
         <input 
           type="text" 
-          value={newMessage}
-          onChange={(e) => setNewMessage(e.target.value)}
-          placeholder="Type a message in English, Persian, or Chinese... / پیام خود را بنویسید... / 输入消息..."
-          style={{
-            flex: 1,
-            padding: '12px',
-            borderRadius: '10px',
-            border: '1px solid #cbd5e1',
-            fontSize: '0.95rem',
-            outline: 'none'
-          }}
+          value={input} 
+          onChange={(e) => setInput(e.target.value)} 
+          placeholder="Type a message in English, Persian, or Chinese... / پیام خود را بنویسید..."
+          style={{ flex: 1, padding: '12px', borderRadius: '8px', border: '1px solid #ccc' }}
         />
-        <button type="submit" style={{
-          backgroundColor: '#2563eb',
-          color: '#fff',
-          border: 'none',
-          padding: '0 20px',
-          borderRadius: '10px',
-          fontWeight: '600',
-          cursor: 'pointer'
-        }}>
-          Send / ارسال / 发送
+        <button type="submit" style={{ padding: '12px 24px', background: '#0070f3', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>
+          Send / ارسال
         </button>
       </form>
     </div>
@@ -191,7 +143,7 @@ function ClassroomContent() {
 
 export default function ClassroomPage() {
   return (
-    <Suspense fallback={<div style={{ textAlign: 'center', padding: '50px' }}>Loading room... / در حال بارگذاری... / 加载中...</div>}>
+    <Suspense fallback={<div style={{ textAlign: 'center', padding: '50px' }}>Loading...</div>}>
       <ClassroomContent />
     </Suspense>
   );
