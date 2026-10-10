@@ -1,6 +1,7 @@
+
 'use client';
 
-import { useState, useEffect, useRef, Suspense } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
@@ -8,75 +9,30 @@ function ClassroomContent() {
   const searchParams = useSearchParams();
   const level = searchParams.get('level') || 'beginner';
 
-  const levelInfo = {
-    beginner: { title: 'Beginner Room', color: 'text-green-400', desc: 'اتاق مکالمه مقدماتی و تمرین پایه' },
-    intermediate: { title: 'Intermediate Room', color: 'text-blue-400', desc: 'اتاق مکالمه متوسط و بحث روزمره' },
-    advanced: { title: 'Advanced Room', color: 'text-purple-400', desc: 'اتاق مکالمه پیشرفته و بحث آزاد' },
+  const roomDetails = {
+    beginner: {
+      title: 'Beginner Room / اتاق مقدماتی / 初级聊天室',
+      desc: 'Practice basic English with friends / تمرین مکالمه پایه / 练习基础英语日常对话',
+      color: '#22c55e',
+    },
+    intermediate: {
+      title: 'Intermediate Room / اتاق متوسط / 中级聊天室',
+      desc: 'Discuss daily topics / بحث پیرامون موضوعات روزمره / 讨论日常生活话题',
+      color: '#eab308',
+    },
+    advanced: {
+      title: 'Advanced Room / اتاق پیشرفته / 高级聊天室',
+      desc: 'Advanced discussions & expressions / بحث‌های تخصصی و اصطلاحات / 深入探讨专业话题',
+      color: '#ef4444',
+    },
   };
 
-  const currentLevel = levelInfo[level] || levelInfo.beginner;
+  const currentRoom = roomDetails[level] || roomDetails.beginner;
 
-  const [isMicOn, setIsMicOn] = useState(true);
-  const [isVideoOn, setIsVideoOn] = useState(true);
-  
-  // Chat States
   const [messages, setMessages] = useState([
-    { id: 1, sender: 'System', text: `به ${currentLevel.title} خوش آمدید! کلمات و اصطلاحات جدید را اینجا بنویسید.` }
+    { id: 1, sender: 'System / سیستم / 系统', text: 'Welcome to the live room! Start typing your messages below. / به اتاق زنده خوش آمدید! پیام خود را بنویسید. / 欢迎来到直播间！请在下方输入您的消息。' }
   ]);
   const [inputMessage, setInputMessage] = useState('');
-
-  const userVideoRef = useRef(null);
-  const streamRef = useRef(null);
-
-  useEffect(() => {
-    let isMounted = true;
-
-    async function initMedia() {
-      try {
-        if (typeof window !== 'undefined' && navigator.mediaDevices) {
-          const stream = await navigator.mediaDevices.getUserMedia({
-            video: true,
-            audio: true,
-          });
-          if (isMounted) {
-            streamRef.current = stream;
-            if (userVideoRef.current) {
-              userVideoRef.current.srcObject = stream;
-            }
-          }
-        }
-      } catch (err) {
-        console.error("Error accessing media devices.", err);
-      }
-    }
-
-    initMedia();
-
-    return () => {
-      isMounted = false;
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach(track => track.stop());
-      }
-    };
-  }, []);
-
-  const toggleMic = () => {
-    if (streamRef.current) {
-      streamRef.current.getAudioTracks().forEach(track => {
-        track.enabled = !isMicOn;
-      });
-    }
-    setIsMicOn(!isMicOn);
-  };
-
-  const toggleVideo = () => {
-    if (streamRef.current) {
-      streamRef.current.getVideoTracks().forEach(track => {
-        track.enabled = !isVideoOn;
-      });
-    }
-    setIsVideoOn(!isVideoOn);
-  };
 
   const handleSendMessage = (e) => {
     e.preventDefault();
@@ -84,99 +40,106 @@ function ClassroomContent() {
 
     const newMessage = {
       id: Date.now(),
-      sender: 'شما',
+      sender: 'You / شما / 你',
       text: inputMessage,
     };
 
-    setMessages((prev) => [...prev, newMessage]);
+    setMessages([...messages, newMessage]);
     setInputMessage('');
   };
 
   return (
-    <main className="min-h-screen bg-slate-900 text-white flex flex-col items-center p-4 md:p-6">
-      <header className="w-full max-w-6xl flex justify-between items-center py-4 border-b border-slate-800 mb-6">
-        <Link href="/" className="text-slate-400 hover:text-white transition-colors text-sm md:text-base">
-          ← بازگشت به انتخاب اتاق‌ها
+    <main style={{ maxWidth: '800px', margin: '0 auto', padding: '20px', fontFamily: 'system-ui, sans-serif' }}>
+      {/* Top Bar */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '1px solid #e2e8f0', paddingBottom: '15px' }}>
+        <div>
+          <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: currentRoom.color, margin: 0 }}>
+            {currentRoom.title}
+          </h1>
+          <p style={{ fontSize: '0.9rem', color: '#64748b', margin: '4px 0 0 0' }}>
+            {currentRoom.desc}
+          </p>
+        </div>
+        <Link href="/" style={{
+          backgroundColor: '#e2e8f0',
+          color: '#334155',
+          padding: '8px 16px',
+          borderRadius: '8px',
+          textDecoration: 'none',
+          fontSize: '0.9rem',
+          fontWeight: '600'
+        }}>
+          Exit / خروج / 退出
         </Link>
-        <span className={`font-semibold ${currentLevel.color}`}>{currentLevel.title}</span>
-      </header>
-
-      <div className="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-3 gap-6 flex-1">
-        {/* Main Video Section */}
-        <div className="lg:col-span-2 bg-slate-800 border border-slate-700 rounded-3xl p-6 flex flex-col justify-between shadow-2xl space-y-4">
-          <div>
-            <h1 className="text-2xl font-bold">{currentLevel.title}</h1>
-            <p className="text-slate-400 text-sm">{currentLevel.desc}</p>
-          </div>
-          
-          <div className="bg-slate-900 rounded-2xl h-80 lg:h-96 flex items-center justify-center border border-slate-800 overflow-hidden relative my-4">
-            <video 
-              ref={userVideoRef} 
-              autoPlay 
-              playsInline 
-              muted 
-              className="w-full h-full object-cover"
-            />
-            {!isVideoOn && (
-              <div className="absolute inset-0 bg-slate-950 flex items-center justify-center text-slate-500">
-                دوربین خاموش است
-              </div>
-            )}
-          </div>
-
-          <div className="flex justify-center gap-4">
-            <button 
-              onClick={toggleMic}
-              className={`px-4 py-2 rounded-xl font-medium transition-colors text-sm md:text-base ${isMicOn ? 'bg-slate-700 hover:bg-slate-600 text-white' : 'bg-red-600 hover:bg-red-700 text-white'}`}
-            >
-              {isMicOn ? '🎤 قطع میکروفون' : '🎤 وصل میکروفون'}
-            </button>
-            <button 
-              onClick={toggleVideo}
-              className={`px-4 py-2 rounded-xl font-medium transition-colors text-sm md:text-base ${isVideoOn ? 'bg-slate-700 hover:bg-slate-600 text-white' : 'bg-red-600 hover:bg-red-700 text-white'}`}
-            >
-              {isVideoOn ? '📹 قطع دوربین' : '📹 وصل دوربین'}
-            </button>
-          </div>
-        </div>
-
-        {/* Live Chat Section */}
-        <div className="bg-slate-800 border border-slate-700 rounded-3xl p-6 flex flex-col justify-between shadow-2xl h-[500px] lg:h-auto">
-          <h2 className="text-xl font-bold border-b border-slate-700 pb-3 text-blue-400">چت زنده کلاس</h2>
-          
-          <div className="flex-1 overflow-y-auto my-4 space-y-3 pr-2 scrollbar-thin">
-            {messages.map((msg) => (
-              <div key={msg.id} className={`p-3 rounded-2xl text-sm ${msg.sender === 'System' ? 'bg-blue-500/10 border border-blue-500/20 text-blue-300' : 'bg-slate-700/60 text-slate-200'}`}>
-                <span className="font-bold text-xs block text-slate-400 mb-1">{msg.sender}</span>
-                <p>{msg.text}</p>
-              </div>
-            ))}
-          </div>
-
-          <form onSubmit={handleSendMessage} className="flex gap-2 border-t border-slate-700 pt-3">
-            <input
-              type="text"
-              value={inputMessage}
-              onChange={(e) => setInputMessage(e.target.value)}
-              placeholder="پیام یا کلمه جدید بنویسید..."
-              className="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
-            />
-            <button
-              type="submit"
-              className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-xl transition-colors"
-            >
-              ارسال
-            </button>
-          </form>
-        </div>
       </div>
+
+      {/* Chat Box */}
+      <div style={{
+        border: '1px solid #cbd5e1',
+        borderRadius: '12px',
+        height: '400px',
+        padding: '16px',
+        overflowY: 'auto',
+        backgroundColor: '#f8fafc',
+        marginBottom: '20px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '12px'
+      }}>
+        {messages.map((msg) => (
+          <div key={msg.id} style={{
+            backgroundColor: msg.sender.includes('System') ? '#e0f2fe' : '#ffffff',
+            padding: '10px 14px',
+            borderRadius: '10px',
+            border: '1px solid #e2e8f0',
+            maxWidth: '80%',
+            alignSelf: msg.sender.includes('You') ? 'flex-end' : 'flex-start'
+          }}>
+            <span style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#2563eb', display: 'block', marginBottom: '4px' }}>
+              {msg.sender}
+            </span>
+            <span style={{ fontSize: '0.95rem', color: '#1e293b' }}>
+              {msg.text}
+            </span>
+          </div>
+        ))}
+      </div>
+
+      {/* Input Form */}
+      <form onSubmit={handleSendMessage} style={{ display: 'flex', gap: '10px' }}>
+        <input
+          type="text"
+          value={inputMessage}
+          onChange={(e) => setInputMessage(e.target.value)}
+          placeholder="Type a message in English, Persian, or Chinese... / پیام خود را بنویسید... / 输入消息..."
+          style={{
+            flex: 1,
+            padding: '12px 16px',
+            borderRadius: '8px',
+            border: '1px solid #cbd5e1',
+            fontSize: '1rem',
+            outline: 'none'
+          }}
+        />
+        <button type="submit" style={{
+          backgroundColor: '#2563eb',
+          color: '#ffffff',
+          border: 'none',
+          padding: '0 24px',
+          borderRadius: '8px',
+          fontWeight: '600',
+          cursor: 'pointer'
+        }}>
+          Send / ارسال / 发送
+        </button>
+      </form>
     </main>
   );
 }
 
 export default function ClassroomPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-slate-900 text-white flex items-center justify-center">در حال بارگذاری اتاق...</div>}>
+    <Suspense fallback={<div style={{ textAlign: 'center', padding: '50px' }}>Loading... / در حال بارگذاری... / 加载中...</div>}>
       <ClassroomContent />
     </Suspense>
   );
