@@ -1,26 +1,25 @@
 
 'use client';
 
-import { useState, useEffect, useRef, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { db } from '../firebase';
 import { collection, addDoc, query, where, orderBy, onSnapshot, serverTimestamp } from 'firebase/firestore';
 
-function ClassroomContent() {
-  const searchParams = useSearchParams();
-  const level = searchParams.get('level') || 'beginner';
-
+export default function ClassroomPage() {
+  const [level, setLevel] = useState('beginner');
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [username, setUsername] = useState('Guest');
   const [showVideo, setShowVideo] = useState(true);
   const messagesEndRef = useRef(null);
 
-  const roomName = `askenglish-${level}-room-2026`;
-
   useEffect(() => {
     if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const lvl = params.get('level') || 'beginner';
+      setLevel(lvl);
+
       const savedName = localStorage.getItem('askenglish_username');
       if (savedName) {
         setUsername(savedName);
@@ -32,11 +31,15 @@ function ClassroomContent() {
     }
   }, []);
 
+  const roomName = `askenglish-${level}-room-2026`;
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
   useEffect(() => {
+    if (!level) return;
+
     const q = query(
       collection(db, 'messages'),
       where('room', '==', level),
@@ -210,13 +213,5 @@ function ClassroomContent() {
 
       </div>
     </div>
-  );
-}
-
-export default function ClassroomPage() {
-  return (
-    <Suspense fallback={<div style={{ textAlign: 'center', padding: '50px' }}>Loading...</div>}>
-      <ClassroomContent />
-    </Suspense>
   );
 }
