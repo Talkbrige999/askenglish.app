@@ -1,10 +1,11 @@
+
 'use client';
 
 import { useState, useEffect, useRef, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { db } from '../../firebase';
-import { collection, addDoc, query, orderBy, onSnapshot, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, query, where, orderBy, onSnapshot, serverTimestamp } from 'firebase/firestore';
 
 function ClassroomContent() {
   const searchParams = useSearchParams();
@@ -15,7 +16,7 @@ function ClassroomContent() {
   const [username, setUsername] = useState('');
   const messagesEndRef = useRef(null);
 
-  // تنظیم نام کاربری در لوکال‌استوریج
+  // تنظیم نام کاربری از لوکال استوریج یا ایجاد نام تصادفی
   useEffect(() => {
     const savedName = localStorage.getItem('askenglish_username');
     if (savedName) {
@@ -31,25 +32,39 @@ function ClassroomContent() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  // دریافت پیام‌ها به صورت زنده
+  // دریافت پیام‌ها فقط مخصوص همان اتاق (room === level)
   useEffect(() => {
-    const q = query(collection(db, 'messages'), orderBy('createdAt', 'asc'));
+    const q = query(
+      collection(db, 'messages'),
+      where('room', '==', level),
+      orderBy('createdAt', 'asc')
+    );
+
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const msgs = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
+      const msgs = snapshot.docs.map(doc => {
+        const data = doc.data();
+        let timeString = '';
+        if (data.createdAt?.toDate) {
+          timeString = data.createdAt.toDate().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        }
+        return {
+          id: doc.id,
+          ...data,
+          formattedTime: timeString
+        };
+      });
       setMessages(msgs);
       scrollToBottom();
     });
+
     return () => unsubscribe();
-  }, []);
+  }, [level]);
 
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
 
-  // ارسال پیام جدید
+  // ارسال پیام جدید به دیتابیس
   const sendMessage = async (e) => {
     e.preventDefault();
     if (!input.trim()) return;
@@ -107,7 +122,12 @@ function ClassroomContent() {
                 marginBottom: '12px' 
               }}
             >
-              <span style={{ fontSize: '11px', color: '#888', marginBottom: '2px' }}>{msg.user}</span>
+              <div style={{ display: 'flex', gap: '6px', alignItems: 'center', marginBottom: '2px' }}>
+                <span style={{ fontSize: '11px', color: '#888', fontWeight: 'bold' }}>{msg.user}</span>
+                {msg.formattedTime && (
+                  <span style={{ fontSize: '10px', color: '#aaa' }}>{msg.formattedTime}</span>
+                )}
+              </div>
               <div style={{ 
                 background: isMe ? '#0070f3' : '#ffffff', 
                 color: isMe ? '#ffffff' : '#333333', 
