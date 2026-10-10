@@ -1,54 +1,64 @@
-'use client';
+
 import Link from 'next/link';
 
 export default function Home() {
   return (
-    <div style={{ fontFamily: 'system-ui, sans-serif', backgroundColor: '#0f172a', color: '#ffffff', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-      {/* Navigation Header */}
-      <header style={{ padding: '20px 40px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #1e293b' }}>
-        <h1 style={{ fontSize: '1.5rem', margin: 0, color: '#38bdf8', fontWeight: 'bold' }}>🌐 GlobalTalk AI</h1>
-        <nav style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
-          <Link href="/chat" style={{ color: '#cbd5e1', textDecoration: 'none', fontWeight: '500' }}>Global Chat</Link>
-          <Link href="/classroom" style={{ color: '#cbd5e1', textDecoration: 'none', fontWeight: '500' }}>Live Class</Link>
-          <Link href="/login" style={{ backgroundColor: '#0284c7', color: '#ffffff', padding: '8px 16px', borderRadius: '6px', textDecoration: 'none', fontWeight: 'bold', fontSize: '0.9rem' }}>Login</Link>
-        </nav>
-      </header>
-
-      {/* Hero Section */}
-      <main style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: '0 20px' }}>
-        <span style={{ backgroundColor: '#1e293b', color: '#38bdf8', padding: '6px 16px', borderRadius: '20px', fontSize: '0.9rem', marginBottom: '20px', border: '1px solid #334155' }}>
-          🚀 Next-Gen AI Language Exchange Platform
-        </span>
-        
-        <h2 style={{ fontSize: '3rem', maxWidth: '800px', lineHeight: '1.2', margin: '0 0 20px 0' }}>
-          Connect, Chat & Learn Languages <span style={{ color: '#38bdf8' }}>in Real-Time</span>
-        </h2>
-        
-        <p style={{ fontSize: '1.2rem', color: '#94a3b8', maxWidth: '600px', marginBottom: '40px' }}>
-          Experience seamless multilingual communication with AI-powered instant translation, global chatrooms, and live interactive video classes.
+    <main className="min-h-screen bg-slate-900 text-white flex flex-col items-center justify-center p-6">
+      <div className="max-w-3xl w-full text-center space-y-8">
+        <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-blue-400">
+          AskEnglish Live Rooms
+        </h1>
+        <p className="text-slate-300 text-lg">
+          پلتفرم رایگان مکالمه زنده زبان انگلیسی. سطح خود را انتخاب کنید و وارد اتاق تمرین شوید.
         </p>
 
-        {/* Action Buttons */}
-        <div style={{ display: 'flex', gap: '20px' }}>
-          <Link href="/chat">
-            <button style={{ backgroundColor: '#0284c7', color: '#ffffff', border: 'none', padding: '14px 28px', borderRadius: '8px', fontSize: '1rem', fontWeight: 'bold', cursor: 'pointer' }}>
-              💬 Join Global Chat
-            </button>
-          </Link>
-          
-          <Link href="/classroom">
-            <button style={{ backgroundColor: '#1e293b', color: '#ffffff', border: '1px solid #334155', padding: '14px 28px', borderRadius: '8px', fontSize: '1rem', fontWeight: 'bold', cursor: 'pointer' }}>
-              🎓 Enter Live Class
-            </button>
-          </Link>
-        </div>
-      </main>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
+          {/* Beginner Room */}
+          <div className="bg-slate-800 border border-slate-700 rounded-2xl p-6 flex flex-col justify-between shadow-lg hover:border-blue-500 transition-all">
+            <div>
+              <span className="bg-green-500/10 text-green-400 text-xs font-semibold px-3 py-1 rounded-full">مقدماتی</span>
+              <h2 className="text-xl font-bold mt-4">Beginner Room</h2>
+              <p className="text-slate-400 text-sm mt-2">مکالمات ساده، پایه‌ای و دوستانه برای شروع یادگیری.</p>
+            </div>
+            <Link 
+              href="/classroom?level=beginner"
+              className="mt-6 inline-block bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-xl transition-colors"
+            >
+              ورود به اتاق
+            </Link>
+          </div>
 
-      {/* Footer */}
-      <footer style={{ padding: '20px', textAlign: 'center', color: '#64748b', fontSize: '0.9rem', borderTop: '1px solid #1e293b' }}>
-        © 2026 GlobalTalk AI. Built with Next.js & React.
-      </footer>
-    </div>
+          {/* Intermediate Room */}
+          <div className="bg-slate-800 border border-slate-700 rounded-2xl p-6 flex flex-col justify-between shadow-lg hover:border-blue-500 transition-all">
+            <div>
+              <span className="bg-blue-500/10 text-blue-400 text-xs font-semibold px-3 py-1 rounded-full">متوسط</span>
+              <h2 className="text-xl font-bold mt-4">Intermediate Room</h2>
+              <p className="text-slate-400 text-sm mt-2">تمرین روان‌سازی کلام و بحث پیرامون موضوعات روز.</p>
+            </div>
+            <Link 
+              href="/classroom?level=intermediate"
+              className="mt-6 inline-block bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-xl transition-colors"
+            >
+              ورود به اتاق
+            </Link>
+          </div>
+
+          {/* Advanced Room */}
+          <div className="bg-slate-800 border border-slate-700 rounded-2xl p-6 flex flex-col justify-between shadow-lg hover:border-blue-500 transition-all">
+            <div>
+              <span className="bg-purple-500/10 text-purple-400 text-xs font-semibold px-3 py-1 rounded-full">پیشرفته</span>
+              <h2 className="text-xl font-bold mt-4">Advanced Room</h2>
+              <p className="text-slate-400 text-sm mt-2">بحث‌های تخصصی، آزادی بیان و اصطلاحات پیشرفته.</p>
+            </div>
+            <Link 
+              href="/classroom?level=advanced"
+              className="mt-6 inline-block bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded-xl transition-colors"
+            >
+              ورود به اتاق
+            </Link>
+          </div>
+        </div>
+      </div>
+    </main>
   );
 }
-
