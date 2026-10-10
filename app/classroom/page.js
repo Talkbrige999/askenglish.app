@@ -17,10 +17,8 @@ function ClassroomContent() {
   const [showVideo, setShowVideo] = useState(true);
   const messagesEndRef = useRef(null);
 
-  // نام اتاق ویدیویی مجزا برای هر سطح در Jitsi
   const roomName = `askenglish-${level}-room-2026`;
 
-  // تنظیم نام کاربری از لوکال استوریج یا ایجاد نام تصادفی
   useEffect(() => {
     const savedName = localStorage.getItem('askenglish_username');
     if (savedName) {
@@ -36,7 +34,6 @@ function ClassroomContent() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  // دریافت پیام‌ها فقط مخصوص همان اتاق (room === level)
   useEffect(() => {
     const q = query(
       collection(db, 'messages'),
@@ -68,7 +65,6 @@ function ClassroomContent() {
     scrollToBottom();
   }, [messages]);
 
-  // ارسال پیام جدید به دیتابیس
   const sendMessage = async (e) => {
     e.preventDefault();
     if (!input.trim()) return;
@@ -83,7 +79,6 @@ function ClassroomContent() {
     setInput('');
   };
 
-  // عناوین ۳ زبانه برای اتاق‌ها
   const roomTitle = 
     level === 'beginner' 
       ? 'Beginner Room / اتاق مقدماتی / 初级聊天室' 
@@ -91,9 +86,10 @@ function ClassroomContent() {
       ? 'Intermediate Room / اتاق متوسط / 中级聊天室' 
       : 'Advanced Room / اتاق پیشرفته / 高级聊天室';
 
+  const jitsiUrl = `https://meet.jit.si/${roomName}#userInfo.displayName=${encodeURIComponent(username)}`;
+
   return (
     <div style={{ maxWidth: '1100px', margin: '20px auto', padding: '20px', fontFamily: 'sans-serif' }}>
-      {/* هدر اتاق با ۳ زبان */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px', flexWrap: 'wrap', gap: '10px' }}>
         <div>
           <h2 style={{ margin: 0, fontSize: '18px', color: '#333' }}>
@@ -134,21 +130,18 @@ function ClassroomContent() {
         </div>
       </div>
 
-      {/* بخش ویدیو و چت */}
       <div style={{ display: 'grid', gridTemplateColumns: showVideo ? '1fr 1fr' : '1fr', gap: '20px' }}>
         
-        {/* پنجره تماس ویدیویی Jitsi */}
         {showVideo && (
           <div style={{ border: '1px solid #ccc', borderRadius: '10px', overflow: 'hidden', height: '520px', background: '#000' }}>
             <iframe
-              src={`https://meet.jit.si/${roomName}#userInfo.displayName="${encodeURIComponent(username)}"`}
+              src={jitsiUrl}
               style={{ width: '100%', height: '100%', border: 'none' }}
               allow="camera; microphone; display-capture; autoplay; clipboard-write"
             />
           </div>
         )}
 
-        {/* پنجره چت متنی */}
         <div style={{ display: 'flex', flexDirection: 'column', height: '520px' }}>
           <div style={{ flex: 1, border: '1px solid #e0e0e0', overflowY: 'auto', padding: '15px', borderRadius: '10px', background: '#f9f9f9' }}>
             <div style={{ background: '#e6f2ff', padding: '10px', borderRadius: '8px', marginBottom: '15px', fontSize: '12px', color: '#004080', lineHeight: '1.5' }}>
