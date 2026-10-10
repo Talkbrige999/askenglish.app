@@ -1,12 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, Suspense } from 'react';
 import { useRouter } from 'next/navigation';
 import { auth, googleProvider } from '../firebase';
 import { signInWithPopup } from 'firebase/auth';
 import Link from 'next/link';
 
-export default function LoginPage() {
+function LoginContent() {
   const router = useRouter();
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -16,7 +16,7 @@ export default function LoginPage() {
     setError('');
     try {
       await signInWithPopup(auth, googleProvider);
-      router.push('/'); // پس از ورود موفق، کاربر به صفحه اصلی هدایت می‌شود
+      router.push('/');
     } catch (err) {
       console.error(err);
       setError('خطا در ورود با گوگل. لطفاً دوباره تلاش کنید.');
@@ -58,5 +58,13 @@ export default function LoginPage() {
         </div>
       </div>
     </main>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-slate-900 text-white flex items-center justify-center">در حال بارگذاری...</div>}>
+      <LoginContent />
+    </Suspense>
   );
 }
