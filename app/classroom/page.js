@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
@@ -31,7 +30,6 @@ export default function ClassroomPage() {
     }
   }, []);
 
-  // شنونده پیام‌های Realtime Database
   useEffect(() => {
     if (!level) return;
 
@@ -58,21 +56,23 @@ export default function ClassroomPage() {
 
   const sendMessage = async (e) => {
     e.preventDefault();
-    if (!input.trim()) return;
+    if (!input || !input.trim()) return;
 
-    const messagesRef = ref(db, `messages/${level}`);
-    await push(messagesRef, {
-      text: input,
-      sender: username,
-      timestamp: Date.now(),
-    });
-
-    setInput('');
+    try {
+      const messagesRef = ref(db, `messages/${level}`);
+      await push(messagesRef, {
+        text: input,
+        sender: username,
+        timestamp: Date.now(),
+      });
+      setInput('');
+    } catch (error) {
+      console.error("Error sending message:", error);
+    }
   };
 
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col font-sans">
-      {/* Header responsive */}
       <header className="bg-white border-b p-4 flex flex-col md:flex-row items-center justify-between gap-3 shadow-sm">
         <h1 className="text-xl font-bold text-gray-800 capitalize">
           {level} Room / اتاق {level}
@@ -96,9 +96,7 @@ export default function ClassroomPage() {
         </div>
       </header>
 
-      {/* Main Layout */}
       <main className="flex-1 flex flex-col md:flex-row p-4 gap-4 max-w-7xl mx-auto w-full">
-        {/* Video Section */}
         {showVideo && (
           <div className="flex-1 bg-black rounded-lg overflow-hidden min-h-[300px] md:min-h-[500px] shadow">
             <iframe
@@ -109,7 +107,6 @@ export default function ClassroomPage() {
           </div>
         )}
 
-        {/* Live Chat Section */}
         <div className="w-full md:w-80 bg-white rounded-lg shadow border flex flex-col h-[500px]">
           <div className="p-3 border-b font-bold text-gray-700 bg-gray-50">
             Live Chat / چت زنده
@@ -147,7 +144,7 @@ export default function ClassroomPage() {
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="Type in English, Persian, or Chinese..."
+              placeholder="Type a message..."
               className="flex-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-800"
             />
             <button
