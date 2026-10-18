@@ -1,10 +1,8 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import Link from 'next/link';
 
 export default function ClassroomPage() {
-  const [lang, setLang] = useState('fa');
   const [myPeerId, setMyPeerId] = useState('');
   const [remotePeerIdInput, setRemotePeerIdInput] = useState('');
   const [callStatus, setCallStatus] = useState('');
@@ -54,6 +52,7 @@ export default function ClassroomPage() {
   }, []);
 
   const callUser = (remoteId) => {
+    if (!remoteId) return;
     setCallStatus('در حال تماس...');
     const call = peerInstance.current.call(remoteId, localStreamRef.current);
     call.on('stream', (remoteStream) => {
@@ -66,29 +65,33 @@ export default function ClassroomPage() {
   };
 
   return (
-    <div style={{ backgroundColor: '#0f172a', color: '#fff', minHeight: '100vh', padding: '20px' }}>
-      <h2>کلاس آنلاین</h2>
-      <p style={{ fontSize: '14px', wordBreak: 'break-all' }}>شناسه شما: {myPeerId}</p>
+    <div style={{ backgroundColor: '#0f172a', color: '#fff', minHeight: '100vh', padding: '20px', fontFamily: 'sans-serif' }}>
+      <h2 style={{ marginBottom: '10px' }}>کلاس آنلاین</h2>
+      <p style={{ fontSize: '14px', wordBreak: 'break-all', backgroundColor: '#1e293b', padding: '10px', borderRadius: '6px' }}>
+        شناسه شما: <span style={{ color: '#38bdf8', fontWeight: 'bold' }}>{myPeerId}</span>
+      </p>
       
-      <div style={{ margin: '15px 0', display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+      <div style={{ margin: '20px 0', display: 'flex', gap: '10px' }}>
         <input 
           type="text" 
           placeholder="شناسه طرف مقابل را وارد کنید" 
           value={remotePeerIdInput} 
           onChange={(e) => setRemotePeerIdInput(e.target.value)}
-          style={{ padding: '8px', borderRadius: '4px', border: '1px solid #ccc', flex: 1, minWidth: '200px' }}
+          style={{ padding: '12px', borderRadius: '6px', border: 'none', flex: 1, color: '#000', fontSize: '14px' }}
         />
         <button 
           onClick={() => callUser(remotePeerIdInput)}
-          style={{ padding: '8px 16px', backgroundColor: '#38bdf8', color: '#000', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}
+          style={{ padding: '12px 24px', backgroundColor: '#22c55e', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '14px' }}
         >
-          تماس
+          برقراری تماس
         </button>
       </div>
 
-      <p style={{ fontSize: '14px', color: '#38bdf8' }}>وضعیت: {callStatus}</p>
+      {callStatus && (
+        <p style={{ fontSize: '14px', color: '#38bdf8', marginBottom: '15px' }}>وضعیت: {callStatus}</p>
+      )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginTop: '15px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
         <div style={{ backgroundColor: '#1e293b', borderRadius: '8px', overflow: 'hidden', height: '250px' }}>
           <video ref={myVideoRef} autoPlay playsInline muted style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
         </div>
