@@ -1,272 +1,407 @@
-
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { db } from '../firebase';
-import { ref, push, onValue, set, remove } from 'firebase/database';
 
 export default function ClassroomPage() {
-  const [level, setLevel] = useState('beginner');
-  const [username, setUsername] = useState('Guest');
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [roomStatus, setRoomStatus] = useState('open'); // 'open' or 'waiting'
-  const [waitingList, setWaitingList] = useState([]);
-  const [isApproved, setIsApproved] = useState(false);
+  const [lang, setLang] = useState('fa');
+  const [isMicOn, setIsMicOn] = useState(true);
+  const [isVideoOn, setIsVideoOn] = useState(true);
+  const [raisedHand, setRaisedHand] = useState(false);
+  const [inWaitingRoom, setInWaitingRoom] = useState(true);
   
-  const [messages, setMessages] = useState([]);
-  const [input, setInput] = useState('');
-  const [showVideo, setShowVideo] = useState(true);
-  const messagesEndRef = useRef(null);
+  const [myPeerId, setMyPeerId] = useState('');
+  const [remotePeerIdInput, setRemotePeerIdInput] = useState('');
+  const [isConnected, setIsConnected] = useState(false);
+  const [callStatus, setCallStatus] = useState('');
+  const [copied, setCopied] = useState(false);
+  const [showQrModal, setShowQrModal] = useState(false);
 
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const params = new URLSearchParams(window.location.search);
-      const lvl = params.get('level') || 'beginner';
-      setLevel(lvl);
+  const myVideoRef = useRef(null);
+  const remoteVideoRef = useRef(null);
+  const peerInstance = useRef(null);
+  const localStreamRef = useRef(null);
 
-      let savedName = localStorage.getItem('askenglish_username');
-      if (!savedName) {
-        savedName = 'User_' + Math.floor(1000 + Math.random() * 9000);
-        localStorage.setItem('askenglish_username', savedName);
-      }
-      setUsername(savedName);
+  const [showContactModal, setShowContactModal] = useState(false);
+  const [messageText, setMessageText] = useState('');
+  const [messageSent, setMessageSent] = useState(false);
 
-      // اگر نام کاربری شامل کلمه Admin باشد یا کاربر اول باشد، ادمین محسوب می‌شود
-      const adminCheck = savedName.toLowerCase().includes('admin') || savedName === 'User_6150';
-      setIsAdmin(adminCheck);
-      if (adminCheck) {
-        setIsApproved(true);
-      }
+  const t = {
+    fa: {
+      back: '← بازگشت به چت',
+      title: 'کلاس زنده: تمرین مکالمه آنلاین',
+      live: '🔴 زنده',
+      waitingTitle: '⏳ اتاق انتظار کلاس',
+      waitingDesc: 'کلاس هنوز شروع نشده است. پس از آماده شدن برای شروع ارتباط زنده روی دکمه زیر کلیک کنید.',
+      enterClass: 'ورود به کلاس (شروع جلسه)',
+      leaveToWaiting: 'انتقال به اتاق انتظار',
+      myIdLabel: 'شناسه اختصاصی شما جهت اتصال:',
+      targetIdPlaceholder: 'شناسه کاربر مقابل را وارد کنید...',
+      callBtn: '📞 تماس زنده',
+      connecting: 'در حال برقراری ارتباط...',
+      connected: '✅ متصل شد',
+      micOn: '🎤 میکروفون روشن',
+      micOff: '🔇 میکروفون خاموش',
+      camOn: '📹 دوربین روشن',
+      camOff: '📷 دوربین خاموش',
+      handUp: '✋ دست بالاست',
+      raiseHand: '🙋‍♂️ بالا بردن دست',
+      participants: '👥 شرکت‌کنندگان',
+      host: '👨‍🏫 استاد راهنما (Host)',
+      you: '👤 شما (Student)',
+      contactUs: '💬 ارتباط با ما / پشتیبانی',
+      sendMessageTitle: 'ارسال پیام به پشتیبانی و استاد',
+      messagePlaceholder: 'پیام خود را بنویسید...',
+      send: 'ارسال پیام',
+      sentSuccess: '✅ پیام شما با موفقیت ارسال شد!',
+      close: 'بستن',
+      copyId: '📋 کپی شناسه',
+      copied: '✅ کپی شد',
+      showQr: '📱 QR کد اتصال',
+      qrTitle: 'اسکن کد جهت اتصال سریع'
+    },
+    en: {
+      back: '← Back to Chat',
+      title: 'Live Class: Online Conversation Practice',
+      live: '🔴 Live',
+      waitingTitle: '⏳ Class Waiting Room',
+      waitingDesc: 'Class has not started yet. Click below when ready to initiate live video/audio stream.',
+      enterClass: 'Enter Classroom',
+      leaveToWaiting: 'Go to Waiting Room',
+      myIdLabel: 'Your unique connection ID:',
+      targetIdPlaceholder: 'Enter peer ID to call...',
+      callBtn: '📞 Live Call',
+      connecting: 'Connecting...',
+      connected: '✅ Connected',
+      micOn: '🎤 Mic On',
+      micOff: '🔇 Mic Off',
+      camOn: '📹 Cam On',
+      camOff: '📷 Cam Off',
+      handUp: '✋ Hand Raised',
+      raiseHand: '🙋‍♂️ Raise Hand',
+      participants: '👥 Participants',
+      host: '👨‍🏫 Instructor (Host)',
+      you: '👤 You (Student)',
+      contactUs: '💬 Contact Us / Support',
+      sendMessageTitle: 'Send Message to Support & Instructor',
+      messagePlaceholder: 'Type your message...',
+      send: 'Send Message',
+      sentSuccess: '✅ Your message has been sent successfully!',
+      close: 'Close',
+      copyId: '📋 Copy ID',
+      copied: '✅ Copied',
+      showQr: '📱 QR Code',
+      qrTitle: 'Scan QR Code for Fast Connect'
+    },
+    zh: {
+      back: '← 返回聊天',
+      title: '直播课：在线口语练习',
+      live: '🔴 直播中',
+      waitingTitle: '⏳ 课堂等候室',
+      waitingDesc: '课程尚未开始。准备好进行实时音视频通话后，请点击下方按钮。',
+      enterClass: '进入教室',
+      leaveToWaiting: '前往等候室',
+      myIdLabel: '您的唯一连接 ID：',
+      targetIdPlaceholder: '输入对方的 ID 进行呼叫...',
+      callBtn: '📞 实时通话',
+      connecting: '正在连接...',
+      connected: '✅ 已连接',
+      micOn: '🎤 麦克风已开启',
+      micOff: '🔇 麦克风已关闭',
+      camOn: '📹 摄像头已开启',
+      camOff: '📷 摄像头已关闭',
+      handUp: '✋ 已举手',
+      raiseHand: '🙋‍♂️ 举手',
+      participants: '👥 参与者',
+      host: '👨‍🏫 导师 (Host)',
+      you: '👤 你 (Student)',
+      contactUs: '💬 联系我们 / 技术支持',
+      sendMessageTitle: '发送消息给导师或支持团队',
+      messagePlaceholder: '输入您的消息...',
+      send: '发送消息',
+      sentSuccess: '✅ 您的消息已成功发送！',
+      close: '关闭',
+      copyId: '📋 复制 ID',
+      copied: '✅ 已复制',
+      showQr: '📱 二维码',
+      qrTitle: '扫描二维码快速连接'
     }
-  }, []);
+  }[lang];
 
-  // گوش دادن به وضعیت اتاق و لیست انتظار در فایربیس
   useEffect(() => {
-    if (!level) return;
+    const script = document.createElement('script');
+    script.src = 'https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js';
+    script.async = true;
+    script.onload = () => {
+      const peer = new window.Peer();
+      peerInstance.current = peer;
 
-    const roomRef = ref(db, `rooms/${level}`);
-    const unsubscribeRoom = onValue(roomRef, (snapshot) => {
-      const data = snapshot.val();
-      if (data) {
-        setRoomStatus(data.status || 'open');
-        
-        // بررسی لیست تایید شده‌ها برای کاربران عادی
-        if (data.approvedUsers && data.approvedUsers[username]) {
-          setIsApproved(true);
-        }
+      peer.on('open', (id) => {
+        setMyPeerId(id);
+      });
 
-        // لیست انتظار برای ادمین
-        if (data.waitingList) {
-          const list = Object.keys(data.waitingList).map((key) => ({
-            id: key,
-            ...data.waitingList[key],
-          }));
-          setWaitingList(list);
-        } else {
-          setWaitingList([]);
-        }
-      } else {
-        // مقداردهی اولیه اگر اتاق وجود نداشت
-        setRoomStatus('open');
-      }
-    });
+      navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+        .then((stream) => {
+          localStreamRef.current = stream;
+          if (myVideoRef.current) {
+            myVideoRef.current.srcObject = stream;
+          }
 
-    // مدیریت چت‌ها
-    const messagesRef = ref(db, `messages/${level}`);
-    const unsubscribeMsgs = onValue(messagesRef, (snapshot) => {
-      const data = snapshot.val();
-      if (data) {
-        const list = Object.keys(data).map((key) => ({
-          id: key,
-          ...data[key],
-        }));
-        setMessages(list);
-      } else {
-        setMessages([]);
-      }
-    });
+          peer.on('call', (call) => {
+            setCallStatus(t.connecting);
+            call.answer(stream);
+            call.on('stream', (remoteStream) => {
+              if (remoteVideoRef.current) {
+                remoteVideoRef.current.srcObject = remoteStream;
+              }
+              setIsConnected(true);
+              setCallStatus(t.connected);
+            });
+          });
+        })
+        .catch((err) => console.error('Media error:', err));
+    };
+    document.body.appendChild(script);
 
     return () => {
-      unsubscribeRoom();
-      unsubscribeMsgs();
+      if (peerInstance.current) peerInstance.current.destroy();
     };
-  }, [level, username]);
+  }, []);
 
-  // ثبت نام کاربر در صف انتظار اگر اتاق بسته/در انتظار باشد
-  useEffect(() => {
-    if (!isAdmin && roomStatus === 'waiting' && !isApproved && username !== 'Guest') {
-      const waitRef = ref(db, `rooms/${level}/waitingList`);
-      // با استفاده از نام کاربری به عنوان کلید تا درخواست تکراری ثبت نشود
-      const userKey = username.replace(/[.#$\/\[\]]/g, '_');
-      set(ref(db, `rooms/${level}/waitingList/${userKey}`), {
-        name: username,
-        timestamp: Date.now()
-      });
+  const makeCall = () => {
+    if (!remotePeerIdInput || !peerInstance.current || !localStreamRef.current) return;
+    setCallStatus(t.connecting);
+    const call = peerInstance.current.call(remotePeerIdInput, localStreamRef.current);
+    
+    call.on('stream', (remoteStream) => {
+      if (remoteVideoRef.current) {
+        remoteVideoRef.current.srcObject = remoteStream;
+      }
+      setIsConnected(true);
+      setCallStatus(t.connected);
+    });
+  };
+
+  const copyPeerId = () => {
+    if (!myPeerId) return;
+    navigator.clipboard.writeText(myPeerId);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const toggleMic = () => {
+    if (localStreamRef.current) {
+      const audioTrack = localStreamRef.current.getAudioTracks()[0];
+      if (audioTrack) {
+        audioTrack.enabled = !isMicOn;
+        setIsMicOn(!isMicOn);
+      }
     }
-  }, [roomStatus, isAdmin, isApproved, level, username]);
-
-  // تغییر وضعیت اتاق توسط مدیر (باز یا بسته کردن)
-  const toggleRoomStatus = async () => {
-    if (!isAdmin) return;
-    const newStatus = roomStatus === 'open' ? 'waiting' : 'open';
-    await set(ref(db, `rooms/${level}/status`), newStatus);
   };
 
-  // تایید کاربر توسط مدیر
-  const approveUser = async (userKey, userName) => {
-    await set(ref(db, `rooms/${level}/approvedUsers/${userName}`), true);
-    await remove(ref(db, `rooms/${level}/waitingList/${userKey}`));
+  const toggleCam = () => {
+    if (localStreamRef.current) {
+      const videoTrack = localStreamRef.current.getVideoTracks()[0];
+      if (videoTrack) {
+        videoTrack.enabled = !isVideoOn;
+        setIsVideoOn(!isVideoOn);
+      }
+    }
   };
 
-  const sendMessage = async (e) => {
+  const handleSendMessage = (e) => {
     e.preventDefault();
-    if (!input || !input.trim()) return;
-    try {
-      const messagesRef = ref(db, `messages/${level}`);
-      await push(messagesRef, {
-        text: input,
-        sender: username,
-        timestamp: Date.now(),
-      });
-      setInput('');
-    } catch (error) {
-      console.error("Error sending message:", error);
-    }
+    if (!messageText.trim()) return;
+    setMessageSent(true);
+    setTimeout(() => {
+      setMessageText('');
+      setMessageSent(false);
+      setShowContactModal(false);
+    }, 2000);
   };
 
-  // اگر اتاق در حالت انتظار باشد و کاربر عادی هنوز تایید نشده باشد
-  if (roomStatus === 'waiting' && !isAdmin && !isApproved) {
-    return (
-      <div className="min-h-screen bg-gray-100 flex flex-col items-center justify-center p-4 font-sans">
-        <div className="bg-white p-8 rounded-2xl shadow-lg border max-w-md w-full text-center">
-          <div className="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl font-bold">
-            ⏳
-          </div>
-          <h2 className="text-xl font-bold text-gray-800 mb-2">اتاق در حالت انتظار (Waiting Room)</h2>
-          <p className="text-gray-500 text-sm mb-6">
-            کلاس در حال حاضر قفل است یا مدیر ورود را محدود کرده. درخواست شما ارسال شد؛ لطفاً منتظر بمانید تا مدیر دسترسی شما را تأیید کند.
-          </p>
-          <div className="bg-blue-50 text-blue-700 py-2.5 px-4 rounded-xl text-sm font-medium mb-4 animate-pulse">
-            نام کاربری شما: {username}
-          </div>
-          <Link
-            href="/"
-            className="inline-block bg-gray-200 hover:bg-gray-300 text-gray-700 text-sm font-medium py-2 px-6 rounded-xl transition"
-          >
-            خروج / Exit
-          </Link>
-        </div>
-      </div>
-    );
-  }
+  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(myPeerId)}`;
 
   return (
-    <div className="min-h-screen bg-gray-100 flex flex-col font-sans">
-      <header className="bg-white border-b p-4 flex flex-col md:flex-row items-center justify-between gap-3 shadow-sm">
-        <h1 className="text-xl font-bold text-gray-800 capitalize">
-          {level} Room / اتاق {level}
-        </h1>
-        <div className="flex items-center gap-3 flex-wrap justify-center">
-          {isAdmin && (
-            <button
-              onClick={toggleRoomStatus}
-              className={`px-3 py-1.5 rounded-lg text-sm font-semibold transition shadow-sm ${
-                roomStatus === 'open' ? 'bg-amber-500 hover:bg-amber-600 text-white' : 'bg-emerald-600 hover:bg-emerald-700 text-white'
-              }`}
-            >
-              {roomStatus === 'open' ? '🔒 قفل کردن اتاق (Waiting Room)' : '🔓 باز کردن درگاه ورود'}
-            </button>
-          )}
-          <div className="bg-gray-100 text-gray-700 text-sm px-3 py-1.5 rounded-lg font-medium border">
-            {isAdmin ? 'مدیر (Admin)' : `کاربر: ${username}`}
+    <div style={{ fontFamily: 'system-ui, sans-serif', backgroundColor: '#0f172a', color: '#ffffff', minHeight: '100vh', display: 'flex', flexDirection: 'column', direction: lang === 'fa' ? 'rtl' : 'ltr' }}>
+      
+      <header style={{ backgroundColor: '#1e293b', padding: '15px 30px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #334155' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+          <Link href="/chat" style={{ textDecoration: 'none', color: '#38bdf8', fontWeight: 'bold' }}>{t.back}</Link>
+          <h2 style={{ margin: 0, fontSize: '1.1rem' }}>{t.title}</h2>
+        </div>
+        
+        <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+          <div style={{ display: 'flex', gap: '5px', background: '#0f172a', padding: '4px', borderRadius: '8px' }}>
+            <button onClick={() => setLang('fa')} style={{ background: lang === 'fa' ? '#38bdf8' : 'transparent', color: '#fff', border: 'none', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}>فارسی 🇮🇷</button>
+            <button onClick={() => setLang('en')} style={{ background: lang === 'en' ? '#38bdf8' : 'transparent', color: '#fff', border: 'none', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}>English 🇬🇧</button>
+            <button onClick={() => setLang('zh')} style={{ background: lang === 'zh' ? '#38bdf8' : 'transparent', color: '#fff', border: 'none', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}>中文 🇨🇳</button>
           </div>
-          <Link
-            href="/"
-            className="bg-gray-200 hover:bg-gray-300 text-gray-700 text-sm px-3 py-1.5 rounded-lg transition"
-          >
-            خروج / Exit
-          </Link>
+
+          <span style={{ backgroundColor: '#ef4444', color: '#fff', padding: '4px 10px', borderRadius: '6px', fontSize: '0.85rem' }}>{t.live}</span>
         </div>
       </header>
 
-      <main className="flex-1 flex flex-col p-4 gap-4 max-w-7xl mx-auto w-full">
-        {/* پنل مدیریت افراد در انتظار برای ادمین */}
-        {isAdmin && waitingList.length > 0 && (
-          <div className="bg-amber-50 border border-amber-200 p-4 rounded-xl shadow-sm">
-            <h3 className="font-bold text-amber-800 text-sm mb-3">
-              🔔 درخواست‌های ورود به کلاس ({waitingList.length}):
-            </h3>
-            <div className="flex gap-3 flex-wrap">
-              {waitingList.map((user) => (
-                <div key={user.id} className="bg-white px-3.5 py-2 rounded-xl shadow-sm flex items-center gap-3 border border-amber-100">
-                  <span className="text-sm font-semibold text-gray-700">{user.name}</span>
-                  <button 
-                    onClick={() => approveUser(user.id, user.name)}
-                    className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs px-3 py-1.5 rounded-lg font-medium transition"
-                  >
-                    تأیید ورود
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+      <main style={{ flex: 1, padding: '20px', display: 'grid', gridTemplateColumns: '3fr 1fr', gap: '20px' }}>
+        
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+          
+          {inWaitingRoom ? (
+            <div style={{ flex: 1, backgroundColor: '#1e293b', borderRadius: '12px', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', padding: '40px', textAlign: 'center', border: '1px solid #334155' }}>
+              <h2 style={{ color: '#38bdf8', marginBottom: '15px' }}>{t.waitingTitle}</h2>
+              <p style={{ color: '#94a3b8', maxWidth: '450px', lineHeight: '1.6', marginBottom: '25px' }}>
+                {t.waitingDesc}
+              </p>
 
-        <div className="flex-1 flex flex-col md:flex-row gap-4 w-full">
-          {showVideo && (
-            <div className="flex-1 bg-black rounded-xl overflow-hidden min-h-[300px] md:min-h-[500px] shadow">
-              <iframe
-                src={`https://meet.jit.si/askenglish-${level}-room-2026#config.prejoinPageEnabled=false`}
-                className="w-full h-full min-h-[300px] md:min-h-[500px] border-0"
-                allow="camera; microphone; display-capture; autoplay"
-              />
+              <button 
+                onClick={() => setInWaitingRoom(false)}
+                style={{ padding: '12px 24px', backgroundColor: '#10b981', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', fontSize: '15px' }}
+              >
+                {t.enterClass}
+              </button>
+            </div>
+          ) : (
+            <div style={{ backgroundColor: '#1e293b', minHeight: '420px', borderRadius: '12px', padding: '15px', display: 'flex', flexDirection: 'column', gap: '15px', position: 'relative', border: '1px solid #334155' }}>
+              
+              <div style={{ display: 'flex', gap: '10px', alignItems: 'center', backgroundColor: '#0f172a', padding: '10px 15px', borderRadius: '8px', flexWrap: 'wrap' }}>
+                <span style={{ fontSize: '12px', color: '#94a3b8' }}>{t.myIdLabel} <strong style={{ color: '#38bdf8' }}>{myPeerId || 'در حال دریافت...'}</strong></span>
+                
+                {myPeerId && (
+                  <>
+                    <button onClick={copyPeerId} style={{ padding: '4px 10px', backgroundColor: copied ? '#10b981' : '#334155', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '11px' }}>
+                      {copied ? t.copied : t.copyId}
+                    </button>
+                    <button onClick={() => setShowQrModal(true)} style={{ padding: '4px 10px', backgroundColor: '#8b5cf6', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '11px' }}>
+                      {t.showQr}
+                    </button>
+                  </>
+                )}
+
+                <input 
+                  type="text" 
+                  value={remotePeerIdInput}
+                  onChange={(e) => setRemotePeerIdInput(e.target.value)}
+                  placeholder={t.targetIdPlaceholder}
+                  style={{ flex: 1, padding: '6px 12px', borderRadius: '6px', border: '1px solid #334155', backgroundColor: '#1e293b', color: '#fff', fontSize: '12px' }}
+                />
+                <button onClick={makeCall} style={{ padding: '6px 14px', backgroundColor: '#10b981', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '12px' }}>
+                  {t.callBtn}
+                </button>
+                {callStatus && <span style={{ fontSize: '12px', color: '#f59e0b', fontWeight: 'bold' }}>{callStatus}</span>}
+                
+                <button 
+                  onClick={() => setInWaitingRoom(true)}
+                  style={{ marginRight: 'auto', padding: '6px 12px', backgroundColor: '#f59e0b', color: '#000', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' }}
+                >
+                  {t.leaveToWaiting}
+                </button>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: isConnected ? '1fr 1fr' : '1fr', gap: '15px', flex: 1 }}>
+                <div style={{ backgroundColor: '#0f172a', borderRadius: '8px', overflow: 'hidden', display: 'flex', justifyContent: 'center', alignItems: 'center', position: 'relative', minHeight: '300px' }}>
+                  <video ref={remoteVideoRef} autoPlay playsInline style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  {!isConnected && (
+                    <div style={{ position: 'absolute', textAlign: 'center', color: '#64748b' }}>
+                      <div style={{ fontSize: '40px' }}>👨‍🏫</div>
+                      <p>منتظر تماس کاربر مقابل...</p>
+                    </div>
+                  )}
+                </div>
+
+                <div style={{ backgroundColor: '#0f172a', borderRadius: '8px', overflow: 'hidden', display: 'flex', justifyContent: 'center', alignItems: 'center', position: 'relative', minHeight: '300px' }}>
+                  <video ref={myVideoRef} autoPlay playsInline muted style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  <span style={{ position: 'absolute', bottom: '10px', right: '10px', backgroundColor: 'rgba(0,0,0,0.6)', padding: '2px 8px', borderRadius: '4px', fontSize: '12px' }}>تصویر شما</span>
+                </div>
+              </div>
+
             </div>
           )}
 
-          <div className="w-full md:w-80 bg-white rounded-xl shadow-sm border flex flex-col h-[500px]">
-            <div className="p-3.5 border-b font-bold text-gray-700 bg-gray-50 rounded-t-xl text-sm">
-              Live Chat / چت زنده
-            </div>
+          <div style={{ backgroundColor: '#1e293b', padding: '15px', borderRadius: '12px', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '15px', border: '1px solid #334155', flexWrap: 'wrap' }}>
+            <button 
+              onClick={toggleMic}
+              style={{ padding: '10px 18px', backgroundColor: isMicOn ? '#3b82f6' : '#ef4444', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}
+            >
+              {isMicOn ? t.micOn : t.micOff}
+            </button>
 
-            <div className="flex-1 p-3 overflow-y-auto space-y-3">
-              <p className="text-xs text-gray-400 text-center">
-                System: Welcome to the live room!
-              </p>
-              {messages.map((msg) => {
-                const isMe = msg.sender === username;
-                return (
-                  <div key={msg.id} className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
-                    <span className="text-[10px] text-gray-400 mb-1">{msg.sender}</span>
-                    <div className={`max-w-[85%] px-3.5 py-2 rounded-2xl text-sm break-words ${
-                      isMe ? 'bg-blue-600 text-white rounded-br-none' : 'bg-gray-200 text-gray-800 rounded-bl-none'
-                    }`}>
-                      {msg.text}
-                    </div>
-                  </div>
-                );
-              })}
-              <div ref={messagesEndRef} />
-            </div>
+            <button 
+              onClick={toggleCam}
+              style={{ padding: '10px 18px', backgroundColor: isVideoOn ? '#3b82f6' : '#ef4444', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}
+            >
+              {isVideoOn ? t.camOn : t.camOff}
+            </button>
 
-            <form onSubmit={sendMessage} className="p-3 border-t flex gap-2">
-              <input
-                type="text"
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                placeholder="Type a message..."
-                className="flex-1 border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-800"
-              />
-              <button
-                type="submit"
-                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-sm font-semibold transition"
-              >
-                Send
-              </button>
-            </form>
+            <button 
+              onClick={() => setRaisedHand(!raisedHand)}
+              style={{ padding: '10px 18px', backgroundColor: raisedHand ? '#f59e0b' : '#475569', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}
+            >
+              {raisedHand ? t.handUp : t.raiseHand}
+            </button>
+
+            <button 
+              onClick={() => setShowContactModal(true)}
+              style={{ padding: '10px 18px', backgroundColor: '#8b5cf6', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}
+            >
+              {t.contactUs}
+            </button>
           </div>
         </div>
+
+        <div style={{ backgroundColor: '#1e293b', borderRadius: '12px', padding: '20px', display: 'flex', flexDirection: 'column', border: '1px solid #334155' }}>
+          <h3 style={{ marginTop: 0, fontSize: '1rem', borderBottom: '1px solid #334155', paddingBottom: '10px' }}>{t.participants}</h3>
+          <ul style={{ listStyle: 'none', padding: 0, margin: '10px 0', color: '#94a3b8', fontSize: '0.9rem', flex: 1 }}>
+            <li style={{ padding: '8px 0', borderBottom: '1px solid #2b3b55' }}>{t.host}</li>
+            <li style={{ padding: '8px 0', borderBottom: '1px solid #2b3b55', color: '#38bdf8' }}>{t.you} {raisedHand && '✋'}</li>
+          </ul>
+        </div>
+
       </main>
+
+      {showQrModal && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.7)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
+          <div style={{ backgroundColor: '#1e293b', padding: '25px', borderRadius: '12px', width: '90%', maxWidth: '350px', border: '1px solid #334155', textAlign: 'center' }}>
+            <h3 style={{ marginTop: 0, color: '#38bdf8' }}>{t.qrTitle}</h3>
+            
+            <div style={{ backgroundColor: '#fff', padding: '15px', borderRadius: '12px', display: 'inline-block', margin: '15px 0' }}>
+              <img src={qrUrl} alt="QR Code" style={{ width: '180px', height: '180px', display: 'block' }} />
+            </div>
+
+            <p style={{ fontSize: '11px', color: '#94a3b8', wordBreak: 'break-all', marginBottom: '15px' }}>{myPeerId}</p>
+
+            <button onClick={() => setShowQrModal(false)} style={{ padding: '8px 20px', backgroundColor: '#475569', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', width: '100%' }}>
+              {t.close}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {showContactModal && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.7)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
+          <div style={{ backgroundColor: '#1e293b', padding: '25px', borderRadius: '12px', width: '90%', maxWidth: '450px', border: '1px solid #334155' }}>
+            <h3 style={{ marginTop: 0, color: '#38bdf8' }}>{t.sendMessageTitle}</h3>
+            
+            {messageSent ? (
+              <p style={{ color: '#10b981', fontWeight: 'bold', textAlign: 'center', padding: '20px 0' }}>{t.sentSuccess}</p>
+            ) : (
+              <form onSubmit={handleSendMessage}>
+                <textarea 
+                  value={messageText}
+                  onChange={(e) => setMessageText(e.target.value)}
+                  placeholder={t.messagePlaceholder}
+                  rows={4}
+                  style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid #334155', backgroundColor: '#0f172a', color: '#fff', marginBottom: '15px', resize: 'none', fontFamily: 'inherit' }}
+                />
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+                  <button type="button" onClick={() => setShowContactModal(false)} style={{ padding: '8px 16px', backgroundColor: '#475569', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>{t.close}</button>
+                  <button type="submit" style={{ padding: '8px 16px', backgroundColor: '#8b5cf6', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>{t.send}</button>
+                </div>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
